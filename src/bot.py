@@ -57,10 +57,16 @@ class AutoReplyBot:
         highest_seen_id = state.last_seen_id or 0
 
         logger.info("Fetched %s tweets", len(tweets))
+        bot_username = self._settings.twitter.bot_username
         for tweet in tweets:
             highest_seen_id = max(highest_seen_id, tweet.id)
             if tweet.id in processed:
                 logger.debug("Skipping already processed tweet %s", tweet.id)
+                continue
+            if bot_username and tweet.author_handle.lower() == bot_username:
+                logger.debug("Skipping bot-authored tweet %s", tweet.id)
+                processed.add(tweet.id)
+                state.processed_ids.append(tweet.id)
                 continue
             preview = " ".join(tweet.text.split())
             logger.info("Processing tweet %s by @%s: %s", tweet.id, tweet.author_handle, preview)
