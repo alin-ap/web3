@@ -6,7 +6,7 @@ import time
 from typing import Optional
 
 from .config import AppSettings
-from .openai_service import ClassificationResult, ReplyGenerator, TweetContext
+from .openai_service import ReplyGenerator, TweetContext
 from .storage import Storage
 from .twitter_service import Tweet, TwitterClient
 
@@ -74,31 +74,22 @@ class AutoReplyBot:
                 state.processed_ids.append(tweet.id)
                 continue
 
-            classification = self._classify_tweet(tweet)
-            logger.debug(
-                "Classification result for tweet %s: decision=%s reason=%s confidence=%.2f",
-                tweet.id,
-                classification.decision,
-                classification.reason,
-                classification.confidence,
-            )
-            if not classification.should_reply:
+            should_reply, classifier_note = self._should_reply(tweet)
+            if not should_reply:
                 logger.info(
-                    "Skipping tweet %s (@%s) | reason=%s | confidence=%.2f",
+                    "Skipping tweet %s (@%s) | classifier=%s",
                     tweet.id,
                     tweet.author_handle,
-                    classification.reason,
-                    classification.confidence,
+                    classifier_note,
                 )
                 processed.add(tweet.id)
                 state.processed_ids.append(tweet.id)
                 continue
 
             logger.info(
-                "Generating reply for tweet %s (@%s) | confidence=%.2f",
+                "Generating reply for tweet %s (@%s)",
                 tweet.id,
                 tweet.author_handle,
-                classification.confidence,
             )
             reply = self._build_reply(tweet)
             if not reply:
@@ -144,16 +135,15 @@ class AutoReplyBot:
             return None
         return cleaned
 
-    def _classify_tweet(self, tweet: Tweet) -> ClassificationResult:
+    def _should_reply(self, tweet: Tweet) -> tuple[bool, str]:
         if self._reply_generator is None:
-            return ClassificationResult("skip", "no_openai_key", 0.0)
+            return False, "no_openai_key"
         try:
-            return self._reply_generator.should_reply(
-                TweetContext(text=tweet.text, author_handle=tweet.author_handle, url=tweet.url)
-            )
+            context = TweetContext(text=tweet.text, author_handle=tweet.author_handle, url=tweet.url)
+            return self._reply_generator.should_reply(context)
         except Exception:  # pragma: no cover - network interaction
             logger.exception("Failed to classify tweet %s", tweet.id)
-            return ClassificationResult("skip", "classification_exception", 0.0)
+            return False, "classification_exception"
 
     @staticmethod
     def _sanitize_reply(text: str, limit: int = 280) -> str:

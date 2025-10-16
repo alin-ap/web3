@@ -12,7 +12,7 @@ load_dotenv()
 
 
 DEFAULT_OPENAI_MODEL = "gpt-4.1-mini"
-DEFAULT_CLASSIFIER_MODEL = "gpt-5-nano"
+DEFAULT_CLASSIFIER_MODEL = "gpt-4.1-mini"
 DEFAULT_REPLY_PROMPT = (
     "You speak for PunkStrategyStrategy ($PSS), an autonomous on-chain meta-strategy engine on Ethereum. "
     "Highlight that trading fees are recycled into PNKSTR/ETH liquidity and used to buy back & burn $PSS, "
@@ -20,11 +20,11 @@ DEFAULT_REPLY_PROMPT = (
     "match the tweet language, avoid hype or profit promises, and include a polite DYOR reminder when promoting."
 )
 DEFAULT_CLASSIFICATION_PROMPT = (
-    "You triage tweets for the PunkStrategyStrategy ($PSS) outreach bot. Reply only if the tweet is about crypto, "
-    "DeFi, on-chain strategy, investment commentary, or community discussions where an educational mention of PSS "
-    "adds value. Skip ads, giveaways, unrelated topics, personal complaints, sensitive news, or anything negative "
-    "about spam/promotions. Respond with strict JSON: {\"decision\": \"reply|skip\", \"reason\": string, "
-    "\"confidence\": number between 0 and 1}. When uncertain, choose skip."
+    "You triage tweets for the PunkStrategyStrategy ($PSS) outreach bot. Reply only when the tweet is genuinely "
+    "about crypto, DeFi, market commentary, or an audience that might welcome an educational mention of PSS. "
+    "Skip ads, giveaways, irrelevant chatter, personal complaints, or sensitive/regulatory news. Output 'SKIP' (uppercase) "
+    "when the bot should stay silent. For any tweet that is acceptable to engage, respond with a short acknowledgment or "
+    "summary (any text is fine, just not SKIP). When uncertain, choose SKIP."
 )
 
 

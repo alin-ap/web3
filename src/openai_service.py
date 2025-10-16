@@ -21,24 +21,13 @@ class TweetContext:
     url: Optional[str] = None
 
 
-@dataclass(slots=True)
-class ClassificationResult:
-    decision: str
-    reason: str
-    confidence: float
-
-    @property
-    def should_reply(self) -> bool:
-        return self.decision.lower() == "reply"
-
-
 class ReplyGenerator:
     def __init__(self, settings: OpenAISettings) -> None:
         self._client = OpenAI(api_key=settings.api_key)
         self._settings = settings
 
-    def should_reply(self, context: TweetContext) -> ClassificationResult:
-        """Decide whether the bot should engage with a tweet."""
+    def should_reply(self, context: TweetContext) -> tuple[bool, str]:
+        """Return (should_reply, raw_decision_text)."""
         user_payload = {
             "tweet_author": context.author_handle,
             "tweet_text": context.text.strip(),
@@ -59,23 +48,23 @@ class ReplyGenerator:
                         "content": json.dumps(user_payload, ensure_ascii=False),
                     },
                 ],
-                max_output_tokens=150,
+                max_output_tokens=20,
             )
             raw = response.output_text.strip()
-            if raw.startswith("```"):
-                raw = raw.strip("`").strip()
-                if raw.lower().startswith("json"):
-                    raw = raw.split("\n", 1)[1] if "\n" in raw else raw[4:]
-            data = json.loads(raw)
-            decision = str(data.get("decision", "skip")).lower()
-            reason = str(data.get("reason", "unable to parse model response"))
-            confidence = float(data.get("confidence", 0.0))
+            if not raw:
+                logger.debug(
+                    "Classifier raw output empty; response payload: %s",
+                    response,
+                )
+                return False, ""
+            normalized = raw.strip().upper()
         except Exception as exc:  # pragma: no cover - network interaction
             logger.warning("Classification failed for tweet by @%s: %s", context.author_handle, exc)
-            decision = "skip"
-            reason = "classification_error"
-            confidence = 0.0
-        return ClassificationResult(decision=decision, reason=reason, confidence=confidence)
+            return False, f"error:{exc}"
+
+        if normalized.startswith("SKIP"):
+            return False, raw
+        return True, raw
 
     def generate(self, context: TweetContext) -> str:
         """Craft a promotional yet compliant reply for PunkStrategyStrategy."""
