@@ -24,23 +24,23 @@ A Python bot that polls the Twitter (X) API for matching tweets, crafts a reply 
 3. Copy `.env.example` to `.env` and fill in required credentials:
    - `TWITTER_CLIENT_ID`, `TWITTER_CLIENT_SECRET`
    - `TWITTER_REDIRECT_URI` (must match the app callback URL)
-   - `OPENAI_API_KEY`
+   - `OPENAI_API_KEY` (可选；未配置时只记录匹配推文，不会生成回复)
    - `TWITTER_SEARCH_QUERY`
 
-Optional knobs include `OPENAI_MODEL`, `REPLY_STYLE_PROMPT`, `POLL_INTERVAL_SECONDS`, `MAX_TWEETS_PER_RUN`, `STATE_PATH`, `TOKEN_STORE_PATH`, and `TWITTER_SCOPES` (space-separated).
+Optional knobs include `OPENAI_MODEL`, `REPLY_STYLE_PROMPT`, `POLL_INTERVAL_SECONDS`, `MAX_TWEETS_PER_RUN`, and `TWITTER_SCOPES` (space-separated).
 
 ## Authorize your Twitter account
 Keep the `.env` values for Twitter credentials in sync. Then run the guided OAuth utility:
 
 ```bash
-python -m src.oauth.twitter_auth walkthrough
+python -m src.main auth walkthrough
 ```
 
-The command prints an authorization link, waits for you to approve access in the browser, and exchanges the returned `code` for `access_token` and `refresh_token`. Tokens are saved to `token_state.json` (or the path from `TOKEN_STORE_PATH`) and `.env`.
+The command prints an authorization link, waits for you to approve access in the browser, and exchanges the returned `code` for `access_token` and `refresh_token`. Tokens are saved to `token_state.json` 和 `.env`。
 
 Alternative commands:
-- `python -m src.oauth.twitter_auth link`  Generate PKCE parameters and the authorization URL only.
-- `python -m src.oauth.twitter_auth exchange --code <code> --code-verifier <verifier>`  Manually exchange an authorization code.
+- `python -m src.main auth link`  Generate PKCE parameters and the authorization URL only.
+- `python -m src.main auth exchange --code <code> --code-verifier <verifier>`  Manually exchange an authorization code.
 
 ## Run the bot
 Start the continuous loop (respects `POLL_INTERVAL_SECONDS`, press `Ctrl+C` to stop):
@@ -50,6 +50,11 @@ python -m src.main run
 
 Add `--log-level DEBUG` for verbose logs.
 
+Enable dry-run mode (log replies but skip posting) with:
+```bash
+python -m src.main run --dry-run
+```
+
 ## How it works
 1. Load configuration, existing state, and cached OAuth tokens from disk.
 2. Search recent tweets matching `TWITTER_SEARCH_QUERY` since the last processed ID.
@@ -58,14 +63,12 @@ Add `--log-level DEBUG` for verbose logs.
 
 ## src 目录说明
 - `src/__init__.py` 包初始化文件，让 `src` 目录可以以包形式被引用。
-- `src/main.py` Typer 命令行入口，负责解析参数并触发机器人运行模式。
+- `src/main.py` Typer 命令行入口，负责解析参数并触发机器人运行模式，同时提供 `auth` 子命令完成授权流程。
 - `src/bot.py` 机器人核心流程：拉取推文、调用 OpenAI 回复、发送并记录状态。
 - `src/config.py` 读取 `.env` 与环境变量，构建 Twitter 与 OpenAI 的配置对象。
 - `src/openai_service.py` 与 OpenAI API 交互，根据推文上下文生成合适回复。
-- `src/state_store.py` 持久化已处理推文 ID 与最新查询位置，防止重复回复。
-- `src/token_store.py` 定义 OAuth2Token 数据结构并负责 access/refresh token 的本地读写。
 - `src/twitter_service.py` 封装 Twitter API 调用，管理搜索、回复与令牌刷新逻辑。
-- `src/oauth/twitter_auth.py` OAuth 授权工具，提供生成链接、换取令牌以及引导式流程的 CLI。
+- `src/storage.py` 统一管理机器人状态与 OAuth token 的本地读写。
 
 ## Testing ideas
 - Target a test account via `TWITTER_SEARCH_QUERY` to verify end-to-end behaviour.

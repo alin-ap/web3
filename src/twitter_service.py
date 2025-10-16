@@ -10,7 +10,7 @@ from typing import Iterable, Optional
 import httpx
 
 from .config import TwitterSettings
-from .token_store import OAuth2Token, TokenStore
+from .storage import OAuth2Token, Storage
 
 
 logger = logging.getLogger(__name__)
@@ -28,16 +28,16 @@ class Tweet:
 
 
 class TwitterClient:
-    def __init__(self, settings: TwitterSettings, token_store: TokenStore) -> None:
+    def __init__(self, settings: TwitterSettings, storage: Storage) -> None:
         self._settings = settings
-        self._token_store = token_store
-        self._token = token_store.load()
+        self._storage = storage
+        self._token = storage.load_token()
         if self._token is None:
             self._token = OAuth2Token(
                 access_token=settings.access_token,
                 refresh_token=settings.refresh_token,
             )
-            self._token_store.save(self._token)
+            self._storage.save_token(self._token)
         self._http = httpx.Client(timeout=_DEFAULT_TIMEOUT)
 
     def fetch_recent_tweets(
@@ -165,5 +165,5 @@ class TwitterClient:
             scope=payload.get("scope"),
         )
         self._token = new_token
-        self._token_store.save(new_token)
+        self._storage.save_token(new_token)
         logger.info("Obtained refreshed access token")

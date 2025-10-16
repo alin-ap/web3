@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Tuple
+from typing import Optional, Tuple
 
 from dotenv import load_dotenv
 
@@ -11,11 +11,15 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+DEFAULT_OPENAI_MODEL = "gpt-4.1-mini"
+DEFAULT_REPLY_STYLE = "Respond with a concise, helpful, and positive tone."
+
+
 @dataclass(slots=True)
 class OpenAISettings:
-    api_key: str = field(repr=False)
-    model: str
-    reply_style_prompt: str
+    api_key: Optional[str] = field(default=None, repr=False)
+    model: str = DEFAULT_OPENAI_MODEL
+    reply_style_prompt: str = DEFAULT_REPLY_STYLE
 
 
 @dataclass(slots=True)
@@ -54,19 +58,20 @@ class AppSettings:
             scopes=tuple(os.getenv("TWITTER_SCOPES", "").split()),
         )
 
+        openai_api_key = os.getenv("OPENAI_API_KEY")
         openai_settings = OpenAISettings(
-            api_key=require("OPENAI_API_KEY"),
-            model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+            api_key=openai_api_key.strip() if openai_api_key else None,
+            model=os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
             reply_style_prompt=os.getenv(
                 "REPLY_STYLE_PROMPT",
-                "Respond with a concise, helpful, and positive tone.",
+                DEFAULT_REPLY_STYLE,
             ),
         )
 
         poll_interval = int(os.getenv("POLL_INTERVAL_SECONDS", "300"))
         max_tweets = int(os.getenv("MAX_TWEETS_PER_RUN", "10"))
-        state_path = os.getenv("STATE_PATH", "state.json")
-        token_store_path = os.getenv("TOKEN_STORE_PATH", "token_state.json")
+        state_path = "state.json"
+        token_store_path = "token_state.json"
 
         return cls(
             twitter=twitter,
