@@ -23,33 +23,47 @@ class AutoReplyBot:
         self._reply_generator = ReplyGenerator(settings.openai)
         self._twitter = TwitterClient(settings.twitter, self._token_store)
 
-    def run_forever(self) -> None:
+    def run(self) -> None:
         interval = self._settings.poll_interval_seconds
+        logger.info("Auto-reply bot started; polling every %s seconds", interval)
         while True:
-            replies = self.run_once()
-            logger.info("Run complete. Replies sent: %s", replies)
+            replies = self._process_cycle()
+            logger.info("Cycle complete. Replies sent: %s", replies)
+            logger.info("Sleeping for %s seconds", interval)
             time.sleep(interval)
 
-    def run_once(self) -> int:
+    def _process_cycle(self) -> int:
+        logger.info("Fetching tweets for query %r", self._settings.twitter.search_query)
         state = self._state_store.load()
         tweets = self._twitter.fetch_recent_tweets(
             max_results=self._settings.max_tweets_per_run,
             since_id=state.last_seen_id,
         )
+        if not tweets:
+            logger.info("No tweets found for query %r", self._settings.twitter.search_query)
+            self._state_store.save(state)
+            return 0
+
         tweets.sort(key=lambda tweet: tweet.id)
         processed = set(state.processed_ids)
         replies_sent = 0
         highest_seen_id = state.last_seen_id or 0
 
+        logger.info("Fetched %s tweets", len(tweets))
         for tweet in tweets:
             highest_seen_id = max(highest_seen_id, tweet.id)
             if tweet.id in processed:
                 logger.debug("Skipping already processed tweet %s", tweet.id)
                 continue
+            preview = " ".join(tweet.text.split())
+            logger.info("Processing tweet %s by @%s: %s", tweet.id, tweet.author_handle, preview)
+            logger.info("Generating reply for tweet %s (@%s)", tweet.id, tweet.author_handle)
             reply = self._build_reply(tweet)
             if not reply:
                 continue
+            logger.info("Reply content for tweet %s: %s", tweet.id, reply)
             try:
+                logger.info("Posting reply to tweet %s", tweet.id)
                 self._twitter.post_reply(tweet.id, reply)
             except Exception:  # pragma: no cover - network interaction
                 logger.exception("Failed to post reply to tweet %s", tweet.id)

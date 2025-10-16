@@ -16,7 +16,7 @@ import httpx
 import typer
 from dotenv import load_dotenv
 
-from .token_store import OAuth2Token, TokenStore
+from ..token_store import OAuth2Token, TokenStore
 
 
 load_dotenv()
@@ -262,16 +262,13 @@ def run_walkthrough() -> None:
 
     typer.echo("请在浏览器中打开以下链接，使用目标账号完成授权：")
     typer.echo(url)
-    typer.echo("\n如果需要保留 code_verifier，请记录：")
-    typer.echo(f"CODE_VERIFIER= {code_verifier}")
-    typer.echo("")
     _ = typer.prompt("授权完成后按 Enter 继续", default="", show_default=False)
 
     auth_code = typer.prompt("请输入回调 URL 中的 code 值")
     if not auth_code.strip():
         typer.echo("未提供 code，流程已取消。")
         return
-    
+
     payload = exchange_authorization_code(
         client_id=settings.client_id,
         client_secret=settings.client_secret or "",
@@ -290,11 +287,9 @@ def run_walkthrough() -> None:
 
     if access_token and refresh_token:
         _persist_tokens(settings.token_path, access_token, refresh_token, expires_in=expires_in, scope=scope)
-        typer.echo(f"已保存到 {settings.token_path}")
+        typer.echo(f"流程完成。已经保存 token；已保存到 {settings.token_path}")
     else:
         typer.echo("未成功获取 token；请检查 code 是否正确。")
-
-    typer.echo("流程完成。已经保存 token；如需刷新，请重新运行本脚本。")
 
 
 def main() -> None:

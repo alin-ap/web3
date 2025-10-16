@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 import sys
-from typing import Optional
 
 import typer
 
@@ -24,26 +23,18 @@ def configure_logging(level: str) -> None:
 
 @app.command()
 def run(
-    loop: bool = typer.Option(
-        False,
-        help="Keep running on an interval defined by POLL_INTERVAL_SECONDS.",
-    ),
     log_level: str = typer.Option("INFO", help="Logging level (DEBUG, INFO, WARNING)."),
 ) -> None:
-    """Execute the auto-reply workflow once or continuously."""
+    """Start the auto-reply bot in continuous polling mode."""
     configure_logging(log_level)
     settings = AppSettings.from_env()
     bot = AutoReplyBot(settings)
 
-    if loop:
-        typer.echo("Starting auto-reply bot in continuous mode. Press Ctrl+C to stop.")
-        try:
-            bot.run_forever()
-        except KeyboardInterrupt:
-            typer.echo("\nStopping bot.")
-    else:
-        replies = bot.run_once()
-        typer.echo(f"Replies sent: {replies}")
+    typer.echo("Starting auto-reply bot. Press Ctrl+C to stop.")
+    try:
+        bot.run()
+    except KeyboardInterrupt:
+        typer.echo("\nStopping bot.")
 
 
 def main() -> None:
