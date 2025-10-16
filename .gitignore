@@ -1,0 +1,17 @@
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment files
+.env
+
+# Local state
+state.json
+token_state.json
+
+# macOS metadata
+.DS_Store
