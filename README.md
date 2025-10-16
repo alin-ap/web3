@@ -28,7 +28,7 @@ A Python bot that polls the Twitter (X) API for matching tweets, crafts a reply 
    - `OPENAI_API_KEY` (可选；未配置时只记录匹配推文，不会生成回复)
    - `TWITTER_SEARCH_QUERY`
 
-Optional knobs include `OPENAI_MODEL`, `OPENAI_CLASSIFIER_MODEL`, `REPLY_STYLE_PROMPT`, `OPENAI_CLASSIFICATION_PROMPT`, `POLL_INTERVAL_SECONDS`, `MAX_TWEETS_PER_RUN`, and `TWITTER_SCOPES` (space-separated).
+Optional knobs include `POLL_INTERVAL_SECONDS`, `MAX_TWEETS_PER_RUN`, `TWITTER_SCOPES` (space-separated)，以及 `TWITTER_BOT_USERNAME`（用于避免给自己账号回复）。
 
 ## Authorize your Twitter account
 Keep the `.env` values for Twitter credentials in sync. Then run the guided OAuth utility:
@@ -75,3 +75,6 @@ python -m src.main run --dry-run
 - Target a test account via `TWITTER_SEARCH_QUERY` to verify end-to-end behaviour.
 - Mock Twitter/OpenAI clients in unit tests by injecting test doubles into `AutoReplyBot`.
 - Perform dry runs by commenting out `post_reply` while evaluating generated text.
+
+## 启动：
+python -m src.main run --log-level info   
