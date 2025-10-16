@@ -8,6 +8,7 @@ A Python bot that polls the Twitter (X) API for matching tweets, crafts a reply 
 - Deduplication of processed tweets to avoid double replies.
 - Automatic refresh-token handling with local persistence.
 - Typer-based CLI for continuous polling.
+- LLM classification filters out ads or off-topic tweets before responding.
 - Environment-driven configuration with optional `.env` file.
 
 ## Prerequisites
@@ -27,7 +28,7 @@ A Python bot that polls the Twitter (X) API for matching tweets, crafts a reply 
    - `OPENAI_API_KEY` (可选；未配置时只记录匹配推文，不会生成回复)
    - `TWITTER_SEARCH_QUERY`
 
-Optional knobs include `OPENAI_MODEL`, `REPLY_STYLE_PROMPT`, `POLL_INTERVAL_SECONDS`, `MAX_TWEETS_PER_RUN`, and `TWITTER_SCOPES` (space-separated).
+Optional knobs include `OPENAI_MODEL`, `OPENAI_CLASSIFIER_MODEL`, `REPLY_STYLE_PROMPT`, `OPENAI_CLASSIFICATION_PROMPT`, `POLL_INTERVAL_SECONDS`, `MAX_TWEETS_PER_RUN`, and `TWITTER_SCOPES` (space-separated).
 
 ## Authorize your Twitter account
 Keep the `.env` values for Twitter credentials in sync. Then run the guided OAuth utility:
@@ -66,7 +67,7 @@ python -m src.main run --dry-run
 - `src/main.py` Typer 命令行入口，负责解析参数并触发机器人运行模式，同时提供 `auth` 子命令完成授权流程。
 - `src/bot.py` 机器人核心流程：拉取推文、调用 OpenAI 回复、发送并记录状态。
 - `src/config.py` 读取 `.env` 与环境变量，构建 Twitter 与 OpenAI 的配置对象。
-- `src/openai_service.py` 与 OpenAI API 交互，根据推文上下文生成合适回复。
+- `src/openai_service.py` 与 OpenAI API 交互，先判定推文是否值得回复，再生成符合 PSS 调性的文案。
 - `src/twitter_service.py` 封装 Twitter API 调用，管理搜索、回复与令牌刷新逻辑。
 - `src/storage.py` 统一管理机器人状态与 OAuth token 的本地读写。
 

@@ -12,14 +12,29 @@ load_dotenv()
 
 
 DEFAULT_OPENAI_MODEL = "gpt-4.1-mini"
-DEFAULT_REPLY_STYLE = "Respond with a concise, helpful, and positive tone."
+DEFAULT_CLASSIFIER_MODEL = "gpt-5-nano"
+DEFAULT_REPLY_PROMPT = (
+    "You speak for PunkStrategyStrategy ($PSS), an autonomous on-chain meta-strategy engine on Ethereum. "
+    "Highlight that trading fees are recycled into PNKSTR/ETH liquidity and used to buy back & burn $PSS, "
+    "ownership is renounced, and everything is verifiable on-chain. Keep replies under 240 characters, "
+    "match the tweet language, avoid hype or profit promises, and include a polite DYOR reminder when promoting."
+)
+DEFAULT_CLASSIFICATION_PROMPT = (
+    "You triage tweets for the PunkStrategyStrategy ($PSS) outreach bot. Reply only if the tweet is about crypto, "
+    "DeFi, on-chain strategy, investment commentary, or community discussions where an educational mention of PSS "
+    "adds value. Skip ads, giveaways, unrelated topics, personal complaints, sensitive news, or anything negative "
+    "about spam/promotions. Respond with strict JSON: {\"decision\": \"reply|skip\", \"reason\": string, "
+    "\"confidence\": number between 0 and 1}. When uncertain, choose skip."
+)
 
 
 @dataclass(slots=True)
 class OpenAISettings:
     api_key: Optional[str] = field(default=None, repr=False)
     model: str = DEFAULT_OPENAI_MODEL
-    reply_style_prompt: str = DEFAULT_REPLY_STYLE
+    reply_style_prompt: str = DEFAULT_REPLY_PROMPT
+    classifier_model: str = DEFAULT_CLASSIFIER_MODEL
+    classification_prompt: str = DEFAULT_CLASSIFICATION_PROMPT
 
 
 @dataclass(slots=True)
@@ -64,7 +79,12 @@ class AppSettings:
             model=os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
             reply_style_prompt=os.getenv(
                 "REPLY_STYLE_PROMPT",
-                DEFAULT_REPLY_STYLE,
+                DEFAULT_REPLY_PROMPT,
+            ),
+            classifier_model=os.getenv("OPENAI_CLASSIFIER_MODEL", DEFAULT_CLASSIFIER_MODEL),
+            classification_prompt=os.getenv(
+                "OPENAI_CLASSIFICATION_PROMPT",
+                DEFAULT_CLASSIFICATION_PROMPT,
             ),
         )
 
