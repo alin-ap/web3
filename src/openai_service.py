@@ -48,15 +48,15 @@ class ReplyGenerator:
                         "content": json.dumps(user_payload, ensure_ascii=False),
                     },
                 ],
-                max_output_tokens=20,
+                max_output_tokens=10000,
             )
             raw = response.output_text.strip()
             if not raw:
                 logger.debug(
-                    "Classifier raw output empty; response payload: %s",
+                    "Classifier raw output empty; treating as reply | payload=%s",
                     response,
                 )
-                return False, ""
+                return True, ""
             normalized = raw.strip().upper()
         except Exception as exc:  # pragma: no cover - network interaction
             logger.warning("Classification failed for tweet by @%s: %s", context.author_handle, exc)
@@ -69,11 +69,6 @@ class ReplyGenerator:
     def generate(self, context: TweetContext) -> str:
         """Craft a promotional yet compliant reply for PunkStrategyStrategy."""
         user_prompt = (
-            "Compose a concise reply (max 240 characters) that naturally references the tweet while introducing "
-            "PunkStrategyStrategy ($PSS). Emphasize the autonomous fee recycling into PNKSTR/ETH liquidity and "
-            "buyback/burn loop, renounced ownership, and transparent on-chain execution. Include a soft CTA such as "
-            "'check the docs' or 'explore the flywheel', and end with 'DYOR'. Avoid emojis unless present in the "
-            "original tweet.\n\n"
             f"Tweet author: @{context.author_handle}\n"
             f"Tweet content: {context.text.strip()}"
         )
@@ -92,7 +87,9 @@ class ReplyGenerator:
                     "content": user_prompt,
                 },
             ],
-            max_output_tokens=220,
+            max_output_tokens=10000,
         )
+
+        logger.debug("Raw reply output for @%s: %r", context.author_handle, response.output_text)
 
         return response.output_text.strip()

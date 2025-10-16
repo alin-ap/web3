@@ -11,20 +11,25 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-DEFAULT_OPENAI_MODEL = "gpt-4.1-mini"
-DEFAULT_CLASSIFIER_MODEL = "gpt-4.1-mini"
+DEFAULT_OPENAI_MODEL = "gpt-5-mini"
+DEFAULT_CLASSIFIER_MODEL = "gpt-5-nano"
 DEFAULT_REPLY_PROMPT = (
-    "You speak for PunkStrategyStrategy ($PSS), an autonomous on-chain meta-strategy engine on Ethereum. "
-    "Highlight that trading fees are recycled into PNKSTR/ETH liquidity and used to buy back & burn $PSS, "
-    "ownership is renounced, and everything is verifiable on-chain. Keep replies under 240 characters, "
-    "match the tweet language, avoid hype or profit promises, and include a polite DYOR reminder when promoting."
+    "You are a Twitter writer emulating the style of @aixbt. "
+    "Write short, calm, and clever replies that sound organic, observational, and slightly ironic. "
+    "Use lowercase tone, avoid emojis, hashtags, or hype. "
+    "Keep under 300 characters. "
+    "The tone should carry subtle market wisdom or trader mindset reflection, "
+    "like something a seasoned observer would say. "
+    "The reply should feel like a thoughtful or witty human comment, not promotional. "
+    "If the tweet is unrelated or low quality, output 'SKIP'."
 )
+
 DEFAULT_CLASSIFICATION_PROMPT = (
     "You triage tweets for the PunkStrategyStrategy ($PSS) outreach bot. Reply only when the tweet is genuinely "
     "about crypto, DeFi, market commentary, or an audience that might welcome an educational mention of PSS. "
     "Skip ads, giveaways, irrelevant chatter, personal complaints, or sensitive/regulatory news. Output 'SKIP' (uppercase) "
     "when the bot should stay silent. For any tweet that is acceptable to engage, respond with a short acknowledgment or "
-    "summary (any text is fine, just not SKIP). When uncertain, choose SKIP."
+    "summary (any text is fine, just not SKIP). "
 )
 
 
@@ -76,16 +81,6 @@ class AppSettings:
         openai_api_key = os.getenv("OPENAI_API_KEY")
         openai_settings = OpenAISettings(
             api_key=openai_api_key.strip() if openai_api_key else None,
-            model=os.getenv("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
-            reply_style_prompt=os.getenv(
-                "REPLY_STYLE_PROMPT",
-                DEFAULT_REPLY_PROMPT,
-            ),
-            classifier_model=os.getenv("OPENAI_CLASSIFIER_MODEL", DEFAULT_CLASSIFIER_MODEL),
-            classification_prompt=os.getenv(
-                "OPENAI_CLASSIFICATION_PROMPT",
-                DEFAULT_CLASSIFICATION_PROMPT,
-            ),
         )
 
         poll_interval = int(os.getenv("POLL_INTERVAL_SECONDS", "300"))
