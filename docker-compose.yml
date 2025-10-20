@@ -1,11 +1,14 @@
 services:
-  bot:
-    image: ${IMAGE:-ghcr.io/example/post:latest}
+  post:
+    build:
+      context: ./app/post
+      dockerfile: Dockerfile
+    image: ${IMAGE:-post-service:local}
     restart: unless-stopped
     env_file:
       - .env
     environment:
-      STATE_PATH: /runtime/state.json
-      TOKEN_STORE_PATH: /runtime/token_state.json
+      STATE_PATH: /app/var/state.json
+      TOKEN_STORE_PATH: /app/var/token_state.json
     volumes:
-      - ./runtime:/runtime
+      - ./app/post/var:/app/var

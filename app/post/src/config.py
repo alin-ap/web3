@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Optional, Tuple
 
 from dotenv import load_dotenv
@@ -11,6 +12,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+SERVICE_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_STATE_PATH = SERVICE_ROOT / "var" / "state.json"
+DEFAULT_TOKEN_PATH = SERVICE_ROOT / "var" / "token_state.json"
 DEFAULT_OPENAI_MODEL = "gpt-5-mini"
 DEFAULT_CLASSIFIER_MODEL = "gpt-5-nano"
 DEFAULT_BOT_USERNAME = "punkstrategys"
@@ -82,8 +86,8 @@ class AppSettings:
     openai: OpenAISettings
     poll_interval_seconds: int = 300
     max_tweets_per_run: int = 10
-    state_path: str = "state.json"
-    token_store_path: str = "token_state.json"
+    state_path: str = str(DEFAULT_STATE_PATH)
+    token_store_path: str = str(DEFAULT_TOKEN_PATH)
 
     @classmethod
     def from_env(cls) -> "AppSettings":
@@ -113,8 +117,8 @@ class AppSettings:
 
         poll_interval = int(os.getenv("POLL_INTERVAL_SECONDS", "300"))
         max_tweets = int(os.getenv("MAX_TWEETS_PER_RUN", "10"))
-        state_path = "state.json"
-        token_store_path = "token_state.json"
+        state_path = os.getenv("STATE_PATH", str(DEFAULT_STATE_PATH))
+        token_store_path = os.getenv("TOKEN_STORE_PATH", str(DEFAULT_TOKEN_PATH))
 
         return cls(
             twitter=twitter,

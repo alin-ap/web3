@@ -18,7 +18,7 @@ import httpx
 import typer
 
 from .bot import AutoReplyBot
-from .config import AppSettings
+from .config import AppSettings, DEFAULT_STATE_PATH, DEFAULT_TOKEN_PATH
 from .storage import OAuth2Token, Storage
 
 
@@ -26,8 +26,8 @@ AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
 DEFAULT_SCOPES = ("tweet.read", "tweet.write", "users.read", "offline.access")
 _DEFAULT_TIMEOUT = 20.0
-_STATE_PATH_DEFAULT = "state.json"
-_TOKEN_PATH_DEFAULT = "token_state.json"
+_STATE_PATH_DEFAULT = str(DEFAULT_STATE_PATH)
+_TOKEN_PATH_DEFAULT = str(DEFAULT_TOKEN_PATH)
 
 app = typer.Typer(add_completion=False)
 auth_app = typer.Typer(add_completion=False, help="Twitter OAuth 2.0 helper commands.")
