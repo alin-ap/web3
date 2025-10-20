@@ -55,13 +55,13 @@ class AutoReplyBot:
         highest_seen_id = state.last_seen_id or 0
 
         logger.info("Fetched %s tweets", len(tweets))
-        bot_username = self._settings.twitter.bot_username
+        bot_usernames = set(self._settings.twitter.bot_usernames)
         for tweet in tweets:
             highest_seen_id = max(highest_seen_id, tweet.id)
             if tweet.id in processed:
                 logger.debug("Skipping already processed tweet %s", tweet.id)
                 continue
-            if bot_username and tweet.author_handle.lower() == bot_username:
+            if bot_usernames and tweet.author_handle.lower() in bot_usernames:
                 logger.debug("Skipping bot-authored tweet %s", tweet.id)
                 processed.add(tweet.id)
                 state.processed_ids.append(tweet.id)
@@ -103,7 +103,7 @@ class AutoReplyBot:
                 continue
             logger.info("Reply content for tweet %s: %s", tweet.id, reply)
             if self._dry_run:
-                logger.info("Dry run enabled; not posting reply")
+                logger.info("Dry run enabled; not posting reply for tweet %s", tweet.id)
                 processed.add(tweet.id)
                 state.processed_ids.append(tweet.id)
                 continue

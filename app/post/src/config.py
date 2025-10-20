@@ -12,7 +12,6 @@ load_dotenv()
 
 DEFAULT_OPENAI_MODEL = "gpt-5-mini"
 DEFAULT_CLASSIFIER_MODEL = "gpt-5-nano"
-DEFAULT_BOT_USERNAME = "punkstrategys"
 DEFAULT_REPLY_PROMPT = ("""
 ## Persona
 你是一位言辞犀利、观点鲜明的链上原生crypto玩家，也是PunkStrategy($PNKSTR)的支持者，也是PunkStrategyStrategy ($PSS)的项目方。你的人设是一个自信的市场老炮，早已厌倦了圈内的各种陈词滥调和虚假炒作。你的首要目标是挑起辩论，引发争议，并让人们觉得“这家伙肯定知道些我不知道的内幕”。
@@ -72,7 +71,7 @@ class TwitterSettings:
     refresh_token: str = field(repr=False)
     search_query: str
     scopes: Tuple[str, ...]
-    bot_username: Optional[str] = None
+    bot_usernames: Tuple[str, ...] = ()
 
 
 @dataclass(slots=True)
@@ -92,8 +91,11 @@ class AppSettings:
                 raise RuntimeError(f"Missing required environment variable: {name}")
             return value
 
-        bot_username = os.getenv("TWITTER_BOT_USERNAME") or DEFAULT_BOT_USERNAME
-        bot_username = bot_username.lower().lstrip("@")
+        bot_usernames_env = require("TWITTER_BOT_USERNAME")
+        bot_usernames_parts = [part.strip() for part in bot_usernames_env.split(",")]
+        if any(not part for part in bot_usernames_parts):
+            raise RuntimeError("TWITTER_BOT_USERNAME 必须是用逗号分隔的用户名列表，且不允许空项")
+        bot_usernames = tuple(part.lower().lstrip("@") for part in bot_usernames_parts)
 
         twitter = TwitterSettings(
             client_id=require("TWITTER_CLIENT_ID"),
@@ -102,7 +104,7 @@ class AppSettings:
             refresh_token=require("TWITTER_REFRESH_TOKEN"),
             search_query=require("TWITTER_SEARCH_QUERY"),
             scopes=tuple(os.getenv("TWITTER_SCOPES", "").split()),
-            bot_username=bot_username,
+            bot_usernames=bot_usernames,
         )
 
         openai_api_key = os.getenv("OPENAI_API_KEY")
