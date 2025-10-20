@@ -1,0 +1,22 @@
+defaults:
+  poll_interval_seconds: 300
+  max_tweets_per_run: 10
+
+models:
+  reply_model: gpt-5-mini
+  classifier_model: gpt-5-nano
+
+groups:
+  - persona: official_bot
+    accounts:
+      - handle: punkstrategys
+        access_token: "SEhSVk0tUWczX3lKWTRHcGIwWnppZS1IQ2VzQjRqeXpIZG1aWXA5anowallhOjE3NjA1OTM1MjE3NjY6MToxOmF0OjE"
+        refresh_token: "eDJoX1Atd1RLTWdNd21YTVpTeHJhNHY5RmMzM0JKb3FXMmJpMzh1Q3EtWFhBOjE3NjA1OTM1MjE3NjY6MToxOnJ0OjE"
+        search_query: '"PunkStrategy" OR "PSS"'
+
+  - persona: eve_bot
+    accounts:
+      - handle: EveZero_42
+        access_token: "RESEARCH_ACCESS_TOKEN"
+        refresh_token: "RESEARCH_REFRESH_TOKEN"
+        search_query: '"PunkStrategy" OR "PSS"'

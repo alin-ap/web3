@@ -5,11 +5,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional, Tuple
 
+import yaml
 from dotenv import load_dotenv
 
 
 load_dotenv()
 
+# 配置路径写死为仓库内位置
+CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yml"
 DEFAULT_OPENAI_MODEL = "gpt-5-mini"
 DEFAULT_CLASSIFIER_MODEL = "gpt-5-nano"
 DEFAULT_REPLY_PROMPT = ("""
@@ -52,6 +55,17 @@ DEFAULT_CLASSIFICATION_PROMPT = (
     "when the bot should stay silent. For any tweet that is acceptable to engage, respond with a short acknowledgment or "
     "summary (any text is fine, just not SKIP). "
 )
+
+# 读取 config.yml 的 defaults 段
+CONFIG_DEFAULTS: dict[str, int] = {}
+if CONFIG_PATH.exists():
+    try:
+        raw_config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
+    except yaml.YAMLError as exc:
+        raise RuntimeError(f"解析配置文件失败: {CONFIG_PATH}") from exc
+    defaults_section = raw_config.get("defaults") or {}
+    for key, value in defaults_section.items():
+        CONFIG_DEFAULTS[key] = int(value)
 
 
 @dataclass(slots=True)
@@ -112,8 +126,11 @@ class AppSettings:
             api_key=openai_api_key.strip() if openai_api_key else None,
         )
 
-        poll_interval = int(os.getenv("POLL_INTERVAL_SECONDS", "300"))
-        max_tweets = int(os.getenv("MAX_TWEETS_PER_RUN", "10"))
+        poll_interval_default = CONFIG_DEFAULTS.get("poll_interval_seconds", 300)
+        max_tweets_default = CONFIG_DEFAULTS.get("max_tweets_per_run", 10)
+
+        poll_interval = int(os.getenv("POLL_INTERVAL_SECONDS", poll_interval_default))
+        max_tweets = int(os.getenv("MAX_TWEETS_PER_RUN", max_tweets_default))
 
         return cls(
             twitter=twitter,
