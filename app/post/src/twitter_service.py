@@ -1,5 +1,4 @@
 """Twitter API integration using OAuth 2.0 user context tokens."""
-from __future__ import annotations
 
 import base64
 import logging
@@ -25,6 +24,20 @@ class Tweet:
     text: str
     author_handle: str
     url: str
+    like_count: int = 0
+    retweet_count: int = 0
+    reply_count: int = 0
+    quote_count: int = 0
+
+    @property
+    def popularity_score(self) -> int:
+        """Heuristic score for ranking tweets by engagement."""
+        return (
+            self.like_count * 3
+            + self.retweet_count * 5
+            + self.reply_count * 2
+            + self.quote_count * 4
+        )
 
 
 class TwitterClient:
@@ -49,9 +62,10 @@ class TwitterClient:
         params = {
             "query": self._settings.search_query,
             "max_results": max_results,
-            "tweet.fields": "author_id,lang,created_at",
+            "tweet.fields": "author_id,lang,created_at,public_metrics",
             "expansions": "author_id",
             "user.fields": "username",
+            "sort_order": "relevancy",
         }
         if since_id:
             params["since_id"] = str(since_id)
@@ -69,14 +83,20 @@ class TwitterClient:
             author = users.get(item.get("author_id"), {})
             handle = author.get("username", "unknown")
             tweet_id = int(item["id"])
+            metrics = item.get("public_metrics") or {}
             tweets.append(
                 Tweet(
                     id=tweet_id,
                     text=item.get("text", ""),
                     author_handle=handle,
                     url=f"https://twitter.com/{handle}/status/{tweet_id}",
+                    like_count=int(metrics.get("like_count", 0)),
+                    retweet_count=int(metrics.get("retweet_count", 0)),
+                    reply_count=int(metrics.get("reply_count", 0)),
+                    quote_count=int(metrics.get("quote_count", 0)),
                 )
             )
+        tweets.sort(key=lambda tweet: (tweet.popularity_score, tweet.id), reverse=True)
         return tweets
 
     def post_reply(self, tweet_id: int, text: str) -> None:

@@ -1,5 +1,4 @@
 """High-level orchestration of the Twitter auto-reply workflow."""
-from __future__ import annotations
 
 import logging
 import time
@@ -51,7 +50,6 @@ class AutoReplyBot:
             self._storage.save_state(state)
             return 0
 
-        tweets.sort(key=lambda tweet: tweet.id)
         processed = set(state.processed_ids)
         replies_sent = 0
         highest_seen_id = state.last_seen_id or 0
@@ -105,7 +103,7 @@ class AutoReplyBot:
                 continue
             logger.info("Reply content for tweet %s: %s", tweet.id, reply)
             if self._dry_run:
-                logger.info("Dry run enabled; not posting reply for tweet %s", tweet.id)
+                logger.info("Dry run enabled; not posting reply")
                 processed.add(tweet.id)
                 state.processed_ids.append(tweet.id)
                 continue

@@ -1,5 +1,4 @@
 """Unified persistence helpers for bot state and OAuth tokens."""
-from __future__ import annotations
 
 import json
 import time

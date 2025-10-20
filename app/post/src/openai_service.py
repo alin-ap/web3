@@ -1,5 +1,4 @@
 """OpenAI helpers for classifying and drafting replies."""
-from __future__ import annotations
 
 import json
 import logging

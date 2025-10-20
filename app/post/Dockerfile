@@ -8,8 +8,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY post_service ./post_service
+COPY src ./src
 
 RUN mkdir -p /app/var
 
-CMD ["python", "-m", "post_service.main", "run"]
+CMD ["python", "-m", "src.main", "run"]
