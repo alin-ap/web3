@@ -25,6 +25,9 @@ AUTH_URL = "https://twitter.com/i/oauth2/authorize"
 TOKEN_URL = "https://api.twitter.com/2/oauth2/token"
 DEFAULT_SCOPES = ("tweet.read", "tweet.write", "users.read", "offline.access")
 _DEFAULT_TIMEOUT = 20.0
+_VAR_DIR = Path(__file__).resolve().parent.parent / "var"
+_STATE_PATH_DEFAULT = str(_VAR_DIR / "state.json")
+_TOKEN_PATH_DEFAULT = str(_VAR_DIR / "token_state.json")
 
 app = typer.Typer(add_completion=False)
 auth_app = typer.Typer(add_completion=False, help="Twitter OAuth 2.0 helper commands.")
@@ -186,31 +189,31 @@ def _persist_tokens(
             scope=scope,
         )
     )
-    _update_env_tokens(access_token, refresh_token)
+#     _update_env_tokens(access_token, refresh_token)
 
 
-def _update_env_tokens(access_token: Optional[str], refresh_token: Optional[str]) -> None:
-    path = Path(".env")
-    if not path.exists():
-        typer.echo("[info] 未找到 .env，跳过写入。")
-        return
+# def _update_env_tokens(access_token: Optional[str], refresh_token: Optional[str]) -> None:
+#     path = Path(".env")
+#     if not path.exists():
+#         typer.echo("[info] 未找到 .env，跳过写入。")
+#         return
 
-    content = path.read_text(encoding="utf-8").splitlines()
+#     content = path.read_text(encoding="utf-8").splitlines()
 
-    def upsert(lines: list[str], key: str, value: Optional[str]) -> None:
-        if value is None:
-            return
-        prefix = f"{key}="
-        for idx, line in enumerate(lines):
-            if line.startswith(prefix):
-                lines[idx] = prefix + value
-                break
-        else:
-            lines.append(prefix + value)
+#     def upsert(lines: list[str], key: str, value: Optional[str]) -> None:
+#         if value is None:
+#             return
+#         prefix = f"{key}="
+#         for idx, line in enumerate(lines):
+#             if line.startswith(prefix):
+#                 lines[idx] = prefix + value
+#                 break
+#         else:
+#             lines.append(prefix + value)
 
-    upsert(content, "TWITTER_ACCESS_TOKEN", access_token)
-    upsert(content, "TWITTER_REFRESH_TOKEN", refresh_token)
-    path.write_text("\n".join(content) + "\n", encoding="utf-8")
+#     upsert(content, "TWITTER_ACCESS_TOKEN", access_token)
+#     upsert(content, "TWITTER_REFRESH_TOKEN", refresh_token)
+#     path.write_text("\n".join(content) + "\n", encoding="utf-8")
 
 
 @auth_app.command("link")
@@ -320,8 +323,6 @@ def auth_walkthrough() -> None:
         typer.echo(f"已保存到 {settings.token_path}")
     else:
         typer.echo("未成功获取 token；请检查 code 是否正确。")
-
-    typer.echo("流程完成。已经保存 token；如需刷新，请重新运行本命令。")
 
 
 app.add_typer(auth_app, name="auth")

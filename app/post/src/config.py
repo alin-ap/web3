@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# 配置路径写死为仓库内位置
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yml"
 DEFAULT_REPLY_PROMPT = ("""
 ## Persona
@@ -54,7 +53,9 @@ DEFAULT_CLASSIFICATION_PROMPT = (
     "summary (any text is fine, just not SKIP). "
 )
 
-# 解析 config.yml，拿到 defaults 和 models
+VAR_DIR = CONFIG_PATH.parent / "var"
+
+# 解析 config.yml，拿到 defaults / models / groups / bots
 RAW_CONFIG: dict[str, object] = {}
 if CONFIG_PATH.exists():
     try:
@@ -76,6 +77,47 @@ if isinstance(models_section, dict):
     for key, value in models_section.items():
         CONFIG_MODELS[key] = str(value)
 
+CONFIG_IGNORE_BOTS: tuple[str, ...] = ()
+bots_section = RAW_CONFIG.get("bots") if isinstance(RAW_CONFIG, dict) else {}
+if isinstance(bots_section, dict):
+    handles = bots_section.get("ignore_handles")
+    if isinstance(handles, list):
+        CONFIG_IGNORE_BOTS = tuple(
+            str(item).strip().lower().lstrip("@")
+            for item in handles
+            if str(item).strip()
+        )
+
+CONFIG_ACCOUNTS: dict[str, dict[str, Optional[str]]] = {}
+groups_section = RAW_CONFIG.get("groups") if isinstance(RAW_CONFIG, dict) else None
+if isinstance(groups_section, list):
+    for group in groups_section:
+        persona = None
+        if isinstance(group, dict):
+            persona_value = group.get("persona")
+            if persona_value is not None:
+                persona = str(persona_value)
+            accounts = group.get("accounts")
+        else:
+            accounts = None
+        if not isinstance(accounts, list):
+            continue
+        for account in accounts:
+            if not isinstance(account, dict):
+                continue
+            handle_raw = account.get("handle")
+            handle = str(handle_raw).strip() if handle_raw else ""
+            if not handle:
+                continue
+            key = handle.lower().lstrip("@")
+            CONFIG_ACCOUNTS[key] = {
+                "handle": handle,
+                "persona": persona,
+                "access_token": str(account.get("access_token", "")).strip() or None,
+                "refresh_token": str(account.get("refresh_token", "")).strip() or None,
+                "search_query": str(account.get("search_query", "")).strip() or None,
+            }
+
 
 @dataclass(slots=True)
 class OpenAISettings:
@@ -87,6 +129,48 @@ class OpenAISettings:
 
 
 @dataclass(slots=True)
+class AccountConfig:
+    handle: str
+    persona: Optional[str]
+    access_token: str
+    refresh_token: str
+    search_query: str
+
+
+def _select_account(handle_hint: Optional[str]) -> AccountConfig:
+    if not CONFIG_ACCOUNTS:
+        raise RuntimeError("config.yml 中没有配置任何账号")
+
+    entry: Optional[dict[str, Optional[str]]] = None
+    if handle_hint:
+        key = handle_hint.lower().lstrip("@")
+        entry = CONFIG_ACCOUNTS.get(key)
+        if entry is None:
+            raise RuntimeError(f"config.yml 未找到 handle={handle_hint} 的账号配置")
+    if entry is None:
+        entry = next(iter(CONFIG_ACCOUNTS.values()))
+
+    handle = entry.get("handle") or ""
+    access_token = entry.get("access_token")
+    refresh_token = entry.get("refresh_token")
+    search_query = entry.get("search_query")
+    if not access_token or not refresh_token:
+        raise RuntimeError(f"账号 {handle} 缺少 access_token 或 refresh_token")
+    if not search_query:
+        raise RuntimeError(f"账号 {handle} 缺少 search_query")
+
+    persona_value = entry.get("persona")
+    persona = persona_value if persona_value else None
+    return AccountConfig(
+        handle=handle,
+        persona=persona,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        search_query=search_query,
+    )
+
+
+@dataclass(slots=True)
 class TwitterSettings:
     client_id: str = field(repr=False)
     client_secret: str = field(repr=False)
@@ -94,6 +178,8 @@ class TwitterSettings:
     refresh_token: str = field(repr=False)
     search_query: str
     scopes: Tuple[str, ...]
+    handle: str
+    persona: Optional[str] = None
     bot_usernames: Tuple[str, ...] = ()
 
 
@@ -103,8 +189,8 @@ class AppSettings:
     openai: OpenAISettings
     poll_interval_seconds: int = 300
     max_tweets_per_run: int = 10
-    state_path: str = "app/post/var/state.json"
-    token_store_path: str = "app/post/var/token_state.json"
+    state_path: str = str(VAR_DIR / "state.json")
+    token_store_path: str = str(VAR_DIR / "token_state.json")
 
     @classmethod
     def from_env(cls) -> "AppSettings":
@@ -114,26 +200,26 @@ class AppSettings:
                 raise RuntimeError(f"Missing required environment variable: {name}")
             return value
 
-        bot_usernames_env = require("TWITTER_BOT_USERNAME")
-        bot_usernames_parts = [part.strip() for part in bot_usernames_env.split(",")]
-        if any(not part for part in bot_usernames_parts):
-            raise RuntimeError("TWITTER_BOT_USERNAME 必须是用逗号分隔的用户名列表，且不允许空项")
-        bot_usernames = tuple(part.lower().lstrip("@") for part in bot_usernames_parts)
+        account = _select_account(os.getenv("TWITTER_HANDLE"))
 
         twitter = TwitterSettings(
             client_id=require("TWITTER_CLIENT_ID"),
             client_secret=require("TWITTER_CLIENT_SECRET"),
-            access_token=require("TWITTER_ACCESS_TOKEN"),
-            refresh_token=require("TWITTER_REFRESH_TOKEN"),
-            search_query=require("TWITTER_SEARCH_QUERY"),
+            access_token=account.access_token,
+            refresh_token=account.refresh_token,
+            search_query=account.search_query,
             scopes=tuple(os.getenv("TWITTER_SCOPES", "").split()),
-            bot_usernames=bot_usernames,
+            handle=account.handle,
+            persona=account.persona,
+            bot_usernames=CONFIG_IGNORE_BOTS,
         )
 
         reply_model = CONFIG_MODELS.get("reply_model")
-
         classifier_model = CONFIG_MODELS.get("classifier_model")
-
+        if not reply_model:
+            raise RuntimeError("config.yml 缺少 models.reply_model 配置")
+        if not classifier_model:
+            raise RuntimeError("config.yml 缺少 models.classifier_model 配置")
 
         openai_api_key = os.getenv("OPENAI_API_KEY")
         openai_settings = OpenAISettings(

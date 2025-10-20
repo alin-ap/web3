@@ -10,13 +10,17 @@ groups:
   - persona: official_bot
     accounts:
       - handle: punkstrategys
-        access_token: "SEhSVk0tUWczX3lKWTRHcGIwWnppZS1IQ2VzQjRqeXpIZG1aWXA5anowallhOjE3NjA1OTM1MjE3NjY6MToxOmF0OjE"
-        refresh_token: "eDJoX1Atd1RLTWdNd21YTVpTeHJhNHY5RmMzM0JKb3FXMmJpMzh1Q3EtWFhBOjE3NjA1OTM1MjE3NjY6MToxOnJ0OjE"
-        search_query: '"PunkStrategy" OR "PSS"'
+        access_token: "OGJPU0pTYnQ3RHdsWlFZVkdKSndVTWN0RXBsN0RsNzNyalBkblc4Nk5tdlFlOjE3NjA5NzQ0MDQ0ODU6MTowOmF0OjE"
+        refresh_token: "VGRNb2ZiaElSeEs1Y0NEV1h3ZWxFdG8tMVB0c09kRG03RUxyLWw4Qm5YYlZKOjE3NjA5NzQ0MDQ0ODU6MToxOnJ0OjE"
+        search_query: '("PunkStrategy" OR "$PNKSTR" OR "PunkStrategyStrategy" OR "PNKSTR") (lang:en OR lang:und)'
 
-  - persona: eve_bot
-    accounts:
-      - handle: EveZero_42
-        access_token: "RESEARCH_ACCESS_TOKEN"
-        refresh_token: "RESEARCH_REFRESH_TOKEN"
-        search_query: '"PunkStrategy" OR "PSS"'
+  # - persona: eve_bot
+  #   accounts:
+  #     - handle: EveZero_42
+  #       access_token: "RESEARCH_ACCESS_TOKEN"
+  #       refresh_token: "RESEARCH_REFRESH_TOKEN"
+  #       search_query: '"PunkStrategy" OR "PSS"'
+
+bots:
+  ignore_handles:
+    - punkstrategys
