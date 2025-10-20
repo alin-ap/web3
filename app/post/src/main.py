@@ -7,6 +7,7 @@ import logging
 import os
 import secrets
 import sys
+import time
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +18,7 @@ import typer
 
 from .bot import AutoReplyBot
 from .config import AppSettings
+from .storage import OAuth2Token, Storage
 
 
 AUTH_URL = "https://twitter.com/i/oauth2/authorize"
@@ -177,7 +179,16 @@ def _persist_tokens(
 ) -> None:
     if not access_token or not refresh_token:
         return
-    # 保留占位，后续如需恢复自动持久化可在此补充逻辑。
+    expires_at = (time.time() + float(expires_in)) if expires_in else None
+    storage = Storage(_STATE_PATH_DEFAULT, str(token_path))
+    storage.save_token(
+        OAuth2Token(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            expires_at=expires_at,
+            scope=scope,
+        )
+    )
 
 
 @auth_app.command("link")
@@ -238,7 +249,8 @@ def auth_exchange(
 
     _persist_tokens(settings.token_path, access_token, refresh_token, expires_in=expires_in, scope=scope)
     if access_token and refresh_token:
-        typer.echo("\n请立即将上述 token 手动写入配置或安全存储。")
+        typer.echo(f"\nTokens saved to {settings.token_path}")
+        typer.echo("记得把最新的 access/refresh token 同步回 config.yml。")
     else:
         typer.echo("\n未收到完整的 access/refresh token，请重试。")
 
@@ -284,7 +296,8 @@ def auth_walkthrough() -> None:
 
     _persist_tokens(settings.token_path, access_token, refresh_token, expires_in=expires_in, scope=scope)
     if access_token and refresh_token:
-        typer.echo("请记下这组 token 并手动更新配置。")
+        typer.echo(f"已保存到 {settings.token_path}")
+        typer.echo("请同步更新 config.yml 内对应账号的 token。")
     else:
         typer.echo("未成功获取 token；请检查 code 是否正确。")
 
