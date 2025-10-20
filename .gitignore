@@ -12,6 +12,7 @@ venv/
 # Local state
 state.json
 token_state.json
+runtime/
 
 # macOS metadata
 .DS_Store

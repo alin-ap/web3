@@ -1,0 +1,11 @@
+services:
+  bot:
+    image: ${IMAGE:-ghcr.io/example/post:latest}
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      STATE_PATH: /runtime/state.json
+      TOKEN_STORE_PATH: /runtime/token_state.json
+    volumes:
+      - ./runtime:/runtime
