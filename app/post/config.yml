@@ -1,10 +1,18 @@
 defaults:
-  poll_interval_seconds: 3000
-  max_tweets_per_run: 10
+  poll_interval_seconds: 3600
+  max_tweets_per_run: 5
 
 models:
   reply_model: gpt-5-mini
   classifier_model: gpt-5-nano
+
+personas:
+  official_bot:
+    reply_prompt_path: prompts/official_bot/reply.md
+    classifier_prompt_path: prompts/classifier.txt
+  eve_bot:
+    reply_prompt_path: prompts/eve_bot/reply.md
+    classifier_prompt_path: prompts/classifier.txt
 
 groups:
   - persona: official_bot

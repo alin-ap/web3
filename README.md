@@ -23,3 +23,8 @@ python -m src.main run --log-level INFO
 如需仅观察生成结果但不真正发送回复，可加 `--dry-run`。
 
 
+## 同时运行两个：
+同时运行多个账号时，在不同终端设置 TWITTER_HANDLE 启动：
+
+TWITTER_HANDLE=punkstrategys python -m src.main run
+TWITTER_HANDLE=EveZero_42 python -m src.main run

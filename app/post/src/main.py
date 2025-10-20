@@ -17,7 +17,7 @@ import httpx
 import typer
 
 from .bot import AutoReplyBot
-from .config import AppSettings
+from .config import AppSettings, BOTS_CONFIG, token_cache_path
 from .storage import OAuth2Token, Storage
 
 
@@ -27,7 +27,6 @@ DEFAULT_SCOPES = ("tweet.read", "tweet.write", "users.read", "offline.access")
 _DEFAULT_TIMEOUT = 20.0
 _VAR_DIR = Path(__file__).resolve().parent.parent / "var"
 _STATE_PATH_DEFAULT = str(_VAR_DIR / "state.json")
-_TOKEN_PATH_DEFAULT = str(_VAR_DIR / "token_state.json")
 
 app = typer.Typer(add_completion=False)
 auth_app = typer.Typer(add_completion=False, help="Twitter OAuth 2.0 helper commands.")
@@ -145,14 +144,28 @@ def exchange_authorization_code(
     return response.json()
 
 
-def _load_auth_settings(require_secret: bool) -> AuthSettings:
+def _resolve_handle(handle: Optional[str]) -> str:
+    if handle:
+        return handle.lstrip("@").strip()
+    env_handle = os.getenv("TWITTER_HANDLE")
+    if env_handle:
+        return env_handle.lstrip("@").strip()
+    if BOTS_CONFIG is None:
+        raise RuntimeError("缺少 config.yml，无法确定默认 handle")
+    return BOTS_CONFIG.select_account(None).handle
+
+
+def _load_auth_settings(require_secret: bool, *, handle: Optional[str]) -> AuthSettings:
     client_id = os.getenv("TWITTER_CLIENT_ID")
     client_secret = os.getenv("TWITTER_CLIENT_SECRET")
     redirect_uri = os.getenv("TWITTER_REDIRECT_URI")
     scopes_env = os.getenv("TWITTER_SCOPES")
     scopes = tuple(filter(None, (scopes_env or " ".join(DEFAULT_SCOPES)).split()))
     state = os.getenv("TWITTER_AUTH_STATE") or secrets.token_hex(16)
-    token_path = Path(_TOKEN_PATH_DEFAULT)
+    resolved_handle = _resolve_handle(handle)
+    if not resolved_handle:
+        raise RuntimeError("缺少 handle，无法确定 token 存储路径")
+    token_path = token_cache_path(resolved_handle)
 
     if not client_id or not redirect_uri:
         raise RuntimeError("TWITTER_CLIENT_ID 和 TWITTER_REDIRECT_URI 必须在环境中配置")
@@ -193,11 +206,12 @@ def _persist_tokens(
 
 @auth_app.command("link")
 def auth_link(
+    handle: Optional[str] = typer.Option(None, help="目标 Twitter handle（无需 @）"),
     state: Optional[str] = typer.Option(None, help="Optional override for OAuth state"),
     code_verifier: Optional[str] = typer.Option(None, help="Provide a code_verifier instead of generating"),
 ) -> None:
     """Print PKCE parameters and the authorization URL."""
-    settings = _load_auth_settings(require_secret=False)
+    settings = _load_auth_settings(require_secret=False, handle=handle)
     verifier = code_verifier or generate_code_verifier()
     state_value = state or settings.state
     challenge = code_challenge_from_verifier(verifier)
@@ -217,13 +231,14 @@ def auth_link(
 
 @auth_app.command("exchange")
 def auth_exchange(
+    handle: Optional[str] = typer.Option(None, help="目标 Twitter handle（无需 @）"),
     code: str = typer.Option(..., prompt=True, help="Authorization code returned to the redirect URI"),
     code_verifier: str = typer.Option(..., prompt=True, help="The code_verifier used when generating the link"),
     timeout: float = typer.Option(_DEFAULT_TIMEOUT, help="HTTP timeout in seconds"),
     print_json: bool = typer.Option(False, help="Print the raw JSON payload"),
 ) -> None:
     """Exchange an authorization code for access and refresh tokens."""
-    settings = _load_auth_settings(require_secret=True)
+    settings = _load_auth_settings(require_secret=True, handle=handle)
     payload = exchange_authorization_code(
         client_id=settings.client_id,
         client_secret=settings.client_secret or "",
@@ -256,9 +271,11 @@ def auth_exchange(
 
 
 @auth_app.command("walkthrough")
-def auth_walkthrough() -> None:
+def auth_walkthrough(
+    handle: Optional[str] = typer.Option(None, help="目标 Twitter handle（无需 @）")
+) -> None:
     """Guide the user through generating the link and exchanging tokens interactively."""
-    settings = _load_auth_settings(require_secret=True)
+    settings = _load_auth_settings(require_secret=True, handle=handle)
     code_verifier = generate_code_verifier()
     code_challenge = code_challenge_from_verifier(code_verifier)
     url = build_authorization_url(

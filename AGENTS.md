@@ -4,7 +4,9 @@
 - `app/post/src/` 是推特自动回复服务核心：`main.py` 提供 Typer CLI，`bot.py` 负责轮询与回复调度，`twitter_service.py` 封装 API 调用，`openai_service.py` 管理 LLM 交互，`storage.py` 负责状态持久化。
 - 运行态数据保存在 `app/post/var/`（如 `state.json`、`token_state.json`）；`docker-compose.yml` 会把该目录挂载进容器，方便本地调试与生产共享。
 - `.env` 位于仓库根目录，供 Compose 和 CLI 读取；新增环境变量时记得更新示例文件并在指南中说明用途。
-- `.env` 中必须配置 `TWITTER_BOT_USERNAME`，支持逗号分隔多个用户名（无空项、无需 `@`），所有列出的账号都会被排除在自动回复之外。
+- `app/post/prompts/` 存放按 persona 拆分的回复/分类 prompt，路径由 `config.yml` 的 `personas` 段引用。
+- 账号排除名单、persona、token 等均在 `app/post/config.yml` 中维护；`bots.ignore_handles` 控制哪些用户名不会被自动回复。
+- OAuth 刷新令牌按账号写入 `app/post/var/token_<handle>.json`，记得随部署携带。
 - `app/backend/`、`app/frontend/` 目前为空壳，后续服务建议沿用 `src/` + `tests/` + `README.md` 的布局，保持文档同步。
 
 ## 构建、测试与开发命令
