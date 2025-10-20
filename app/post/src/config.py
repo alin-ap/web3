@@ -55,77 +55,17 @@ DEFAULT_CLASSIFICATION_PROMPT = (
 
 VAR_DIR = CONFIG_PATH.parent / "var"
 
-# 解析 config.yml，拿到 defaults / models / groups / bots
-RAW_CONFIG: dict[str, object] = {}
-if CONFIG_PATH.exists():
-    try:
-        loaded = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
-    except yaml.YAMLError as exc:
-        raise RuntimeError(f"解析配置文件失败: {CONFIG_PATH}") from exc
-    if isinstance(loaded, dict):
-        RAW_CONFIG = loaded
 
-CONFIG_DEFAULTS: dict[str, int] = {}
-defaults_section = RAW_CONFIG.get("defaults") if isinstance(RAW_CONFIG, dict) else {}
-if isinstance(defaults_section, dict):
-    for key, value in defaults_section.items():
-        CONFIG_DEFAULTS[key] = int(value)
-
-CONFIG_MODELS: dict[str, str] = {}
-models_section = RAW_CONFIG.get("models") if isinstance(RAW_CONFIG, dict) else {}
-if isinstance(models_section, dict):
-    for key, value in models_section.items():
-        CONFIG_MODELS[key] = str(value)
-
-CONFIG_IGNORE_BOTS: tuple[str, ...] = ()
-bots_section = RAW_CONFIG.get("bots") if isinstance(RAW_CONFIG, dict) else {}
-if isinstance(bots_section, dict):
-    handles = bots_section.get("ignore_handles")
-    if isinstance(handles, list):
-        CONFIG_IGNORE_BOTS = tuple(
-            str(item).strip().lower().lstrip("@")
-            for item in handles
-            if str(item).strip()
-        )
-
-CONFIG_ACCOUNTS: dict[str, dict[str, Optional[str]]] = {}
-groups_section = RAW_CONFIG.get("groups") if isinstance(RAW_CONFIG, dict) else None
-if isinstance(groups_section, list):
-    for group in groups_section:
-        persona = None
-        if isinstance(group, dict):
-            persona_value = group.get("persona")
-            if persona_value is not None:
-                persona = str(persona_value)
-            accounts = group.get("accounts")
-        else:
-            accounts = None
-        if not isinstance(accounts, list):
-            continue
-        for account in accounts:
-            if not isinstance(account, dict):
-                continue
-            handle_raw = account.get("handle")
-            handle = str(handle_raw).strip() if handle_raw else ""
-            if not handle:
-                continue
-            key = handle.lower().lstrip("@")
-            CONFIG_ACCOUNTS[key] = {
-                "handle": handle,
-                "persona": persona,
-                "access_token": str(account.get("access_token", "")).strip() or None,
-                "refresh_token": str(account.get("refresh_token", "")).strip() or None,
-                "search_query": str(account.get("search_query", "")).strip() or None,
-            }
+@dataclass(slots=True)
+class DefaultsConfig:
+    poll_interval_seconds: int = 300
+    max_tweets_per_run: int = 10
 
 
 @dataclass(slots=True)
-class OpenAISettings:
-    model: str
+class ModelsConfig:
+    reply_model: str
     classifier_model: str
-    api_key: Optional[str] = field(default=None, repr=False)
-    reply_style_prompt: str = DEFAULT_REPLY_PROMPT
-    classification_prompt: str = DEFAULT_CLASSIFICATION_PROMPT
 
 
 @dataclass(slots=True)
@@ -137,37 +77,143 @@ class AccountConfig:
     search_query: str
 
 
+@dataclass(slots=True)
+class BotsConfig:
+    defaults: DefaultsConfig
+    models: ModelsConfig
+    accounts: dict[str, AccountConfig]
+    ignore_handles: tuple[str, ...]
+
+    @classmethod
+    def from_dict(cls, raw: dict[str, object]) -> "BotsConfig":
+        defaults_raw = raw.get("defaults")
+        if defaults_raw is None:
+            defaults = DefaultsConfig()
+        elif isinstance(defaults_raw, dict):
+            defaults = DefaultsConfig(
+                poll_interval_seconds=int(defaults_raw.get("poll_interval_seconds", 300)),
+                max_tweets_per_run=int(defaults_raw.get("max_tweets_per_run", 10)),
+            )
+        else:
+            raise RuntimeError("config.yml 的 defaults 节必须是字典")
+
+        models_raw = raw.get("models")
+        if not isinstance(models_raw, dict):
+            raise RuntimeError("config.yml 缺少 models 节配置")
+        reply_model = str(models_raw.get("reply_model", "")).strip()
+        classifier_model = str(models_raw.get("classifier_model", "")).strip()
+        if not reply_model:
+            raise RuntimeError("config.yml 缺少 models.reply_model 配置")
+        if not classifier_model:
+            raise RuntimeError("config.yml 缺少 models.classifier_model 配置")
+        models = ModelsConfig(reply_model=reply_model, classifier_model=classifier_model)
+
+        ignore_handles: tuple[str, ...] = ()
+        bots_raw = raw.get("bots")
+        if bots_raw is not None and not isinstance(bots_raw, dict):
+            raise RuntimeError("config.yml 的 bots 节必须是字典")
+        if isinstance(bots_raw, dict):
+            handles = bots_raw.get("ignore_handles")
+            if handles is None:
+                ignore_handles = ()
+            elif isinstance(handles, (list, tuple)):
+                ignore_handles = tuple(
+                    str(item).strip().lower().lstrip("@")
+                    for item in handles
+                    if str(item).strip()
+                )
+            else:
+                raise RuntimeError("config.yml 的 bots.ignore_handles 必须是列表")
+
+        groups_raw = raw.get("groups")
+        if not isinstance(groups_raw, list) or not groups_raw:
+            raise RuntimeError("config.yml 缺少 groups 节配置")
+
+        accounts: dict[str, AccountConfig] = {}
+        for group in groups_raw:
+            if not isinstance(group, dict):
+                raise RuntimeError("config.yml groups 成员必须是字典")
+            persona_value = group.get("persona")
+            persona = str(persona_value).strip() if persona_value else None
+            accounts_raw = group.get("accounts")
+            if not isinstance(accounts_raw, list) or not accounts_raw:
+                raise RuntimeError("config.yml persona group 缺少 accounts 配置")
+            for account_raw in accounts_raw:
+                if not isinstance(account_raw, dict):
+                    raise RuntimeError("config.yml account 项必须是字典")
+                handle = str(account_raw.get("handle", "")).strip()
+                if not handle:
+                    raise RuntimeError("config.yml 发现缺少 handle 的账号配置")
+                key = handle.lower().lstrip("@")
+                if key in accounts:
+                    raise RuntimeError(f"config.yml 中存在重复账号: {handle}")
+                access_token = str(account_raw.get("access_token", "")).strip()
+                refresh_token = str(account_raw.get("refresh_token", "")).strip()
+                search_query = str(account_raw.get("search_query", "")).strip()
+                if not access_token or not refresh_token:
+                    raise RuntimeError(f"账号 {handle} 缺少 access_token 或 refresh_token")
+                if not search_query:
+                    raise RuntimeError(f"账号 {handle} 缺少 search_query")
+                accounts[key] = AccountConfig(
+                    handle=handle,
+                    persona=persona,
+                    access_token=access_token,
+                    refresh_token=refresh_token,
+                    search_query=search_query,
+                )
+
+        if not accounts:
+            raise RuntimeError("config.yml 中没有配置任何账号")
+
+        return cls(
+            defaults=defaults,
+            models=models,
+            accounts=accounts,
+            ignore_handles=ignore_handles,
+        )
+
+    def select_account(self, handle_hint: Optional[str]) -> AccountConfig:
+        if not self.accounts:
+            raise RuntimeError("config.yml 中没有配置任何账号")
+        if handle_hint:
+            key = handle_hint.lower().lstrip("@")
+            try:
+                return self.accounts[key]
+            except KeyError as exc:
+                raise RuntimeError(f"config.yml 未找到 handle={handle_hint} 的账号配置") from exc
+        return next(iter(self.accounts.values()))
+
+
+def load_bots_config(path: Path) -> Optional[BotsConfig]:
+    if not path.exists():
+        return None
+    try:
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise RuntimeError(f"解析配置文件失败: {path}") from exc
+    if raw is None:
+        raise RuntimeError(f"{path} 是空文件")
+    if not isinstance(raw, dict):
+        raise RuntimeError(f"{path} 的顶层配置必须是字典")
+    return BotsConfig.from_dict(raw)
+
+
+BOTS_CONFIG = load_bots_config(CONFIG_PATH)
+
+
+@dataclass(slots=True)
+class OpenAISettings:
+    model: str
+    classifier_model: str
+    api_key: Optional[str] = field(default=None, repr=False)
+    reply_style_prompt: str = DEFAULT_REPLY_PROMPT
+    classification_prompt: str = DEFAULT_CLASSIFICATION_PROMPT
+
+
 def _select_account(handle_hint: Optional[str]) -> AccountConfig:
-    if not CONFIG_ACCOUNTS:
-        raise RuntimeError("config.yml 中没有配置任何账号")
-
-    entry: Optional[dict[str, Optional[str]]] = None
-    if handle_hint:
-        key = handle_hint.lower().lstrip("@")
-        entry = CONFIG_ACCOUNTS.get(key)
-        if entry is None:
-            raise RuntimeError(f"config.yml 未找到 handle={handle_hint} 的账号配置")
-    if entry is None:
-        entry = next(iter(CONFIG_ACCOUNTS.values()))
-
-    handle = entry.get("handle") or ""
-    access_token = entry.get("access_token")
-    refresh_token = entry.get("refresh_token")
-    search_query = entry.get("search_query")
-    if not access_token or not refresh_token:
-        raise RuntimeError(f"账号 {handle} 缺少 access_token 或 refresh_token")
-    if not search_query:
-        raise RuntimeError(f"账号 {handle} 缺少 search_query")
-
-    persona_value = entry.get("persona")
-    persona = persona_value if persona_value else None
-    return AccountConfig(
-        handle=handle,
-        persona=persona,
-        access_token=access_token,
-        refresh_token=refresh_token,
-        search_query=search_query,
-    )
+    if BOTS_CONFIG is None:
+        raise RuntimeError(f"缺少配置文件: {CONFIG_PATH}")
+    return BOTS_CONFIG.select_account(handle_hint)
 
 
 @dataclass(slots=True)
@@ -201,6 +247,9 @@ class AppSettings:
             return value
 
         account = _select_account(os.getenv("TWITTER_HANDLE"))
+        config = BOTS_CONFIG
+        if config is None:
+            raise RuntimeError(f"缺少配置文件: {CONFIG_PATH}")
 
         twitter = TwitterSettings(
             client_id=require("TWITTER_CLIENT_ID"),
@@ -211,25 +260,18 @@ class AppSettings:
             scopes=tuple(os.getenv("TWITTER_SCOPES", "").split()),
             handle=account.handle,
             persona=account.persona,
-            bot_usernames=CONFIG_IGNORE_BOTS,
+            bot_usernames=config.ignore_handles,
         )
-
-        reply_model = CONFIG_MODELS.get("reply_model")
-        classifier_model = CONFIG_MODELS.get("classifier_model")
-        if not reply_model:
-            raise RuntimeError("config.yml 缺少 models.reply_model 配置")
-        if not classifier_model:
-            raise RuntimeError("config.yml 缺少 models.classifier_model 配置")
 
         openai_api_key = os.getenv("OPENAI_API_KEY")
         openai_settings = OpenAISettings(
             api_key=openai_api_key.strip() if openai_api_key else None,
-            model=reply_model,
-            classifier_model=classifier_model,
+            model=config.models.reply_model,
+            classifier_model=config.models.classifier_model,
         )
 
-        poll_interval_default = CONFIG_DEFAULTS.get("poll_interval_seconds", 300)
-        max_tweets_default = CONFIG_DEFAULTS.get("max_tweets_per_run", 10)
+        poll_interval_default = config.defaults.poll_interval_seconds
+        max_tweets_default = config.defaults.max_tweets_per_run
 
         poll_interval = int(os.getenv("POLL_INTERVAL_SECONDS", poll_interval_default))
         max_tweets = int(os.getenv("MAX_TWEETS_PER_RUN", max_tweets_default))
@@ -239,6 +281,4 @@ class AppSettings:
             openai=openai_settings,
             poll_interval_seconds=poll_interval,
             max_tweets_per_run=max_tweets,
-            state_path="app/post/var/state.json",
-            token_store_path="app/post/var/token_state.json",
         )

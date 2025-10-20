@@ -7,7 +7,6 @@ import logging
 import os
 import secrets
 import sys
-import time
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
@@ -18,7 +17,6 @@ import typer
 
 from .bot import AutoReplyBot
 from .config import AppSettings
-from .storage import OAuth2Token, Storage
 
 
 AUTH_URL = "https://twitter.com/i/oauth2/authorize"
@@ -179,41 +177,7 @@ def _persist_tokens(
 ) -> None:
     if not access_token or not refresh_token:
         return
-    expires_at = (time.time() + float(expires_in)) if expires_in else None
-    storage = Storage(_STATE_PATH_DEFAULT, str(token_path))
-    storage.save_token(
-        OAuth2Token(
-            access_token=access_token,
-            refresh_token=refresh_token,
-            expires_at=expires_at,
-            scope=scope,
-        )
-    )
-#     _update_env_tokens(access_token, refresh_token)
-
-
-# def _update_env_tokens(access_token: Optional[str], refresh_token: Optional[str]) -> None:
-#     path = Path(".env")
-#     if not path.exists():
-#         typer.echo("[info] 未找到 .env，跳过写入。")
-#         return
-
-#     content = path.read_text(encoding="utf-8").splitlines()
-
-#     def upsert(lines: list[str], key: str, value: Optional[str]) -> None:
-#         if value is None:
-#             return
-#         prefix = f"{key}="
-#         for idx, line in enumerate(lines):
-#             if line.startswith(prefix):
-#                 lines[idx] = prefix + value
-#                 break
-#         else:
-#             lines.append(prefix + value)
-
-#     upsert(content, "TWITTER_ACCESS_TOKEN", access_token)
-#     upsert(content, "TWITTER_REFRESH_TOKEN", refresh_token)
-#     path.write_text("\n".join(content) + "\n", encoding="utf-8")
+    # 保留占位，后续如需恢复自动持久化可在此补充逻辑。
 
 
 @auth_app.command("link")
@@ -274,9 +238,9 @@ def auth_exchange(
 
     _persist_tokens(settings.token_path, access_token, refresh_token, expires_in=expires_in, scope=scope)
     if access_token and refresh_token:
-        typer.echo(f"\nTokens saved to {settings.token_path}")
+        typer.echo("\n请立即将上述 token 手动写入配置或安全存储。")
     else:
-        typer.echo("\n未收到完整的 access/refresh token，未进行持久化。")
+        typer.echo("\n未收到完整的 access/refresh token，请重试。")
 
 
 @auth_app.command("walkthrough")
@@ -320,7 +284,7 @@ def auth_walkthrough() -> None:
 
     _persist_tokens(settings.token_path, access_token, refresh_token, expires_in=expires_in, scope=scope)
     if access_token and refresh_token:
-        typer.echo(f"已保存到 {settings.token_path}")
+        typer.echo("请记下这组 token 并手动更新配置。")
     else:
         typer.echo("未成功获取 token；请检查 code 是否正确。")
 

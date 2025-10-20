@@ -1,5 +1,5 @@
 defaults:
-  poll_interval_seconds: 300
+  poll_interval_seconds: 3000
   max_tweets_per_run: 10
 
 models:
@@ -10,17 +10,18 @@ groups:
   - persona: official_bot
     accounts:
       - handle: punkstrategys
-        access_token: "OGJPU0pTYnQ3RHdsWlFZVkdKSndVTWN0RXBsN0RsNzNyalBkblc4Nk5tdlFlOjE3NjA5NzQ0MDQ0ODU6MTowOmF0OjE"
-        refresh_token: "VGRNb2ZiaElSeEs1Y0NEV1h3ZWxFdG8tMVB0c09kRG03RUxyLWw4Qm5YYlZKOjE3NjA5NzQ0MDQ0ODU6MToxOnJ0OjE"
+        access_token: "eUN6aWxsVGdRcXVrNHdyM2lXTE5Wdkx5d2xGWGdIT1NzT3QtMVVZX2pucm1HOjE3NjA5NzY4OTAwNTQ6MToxOmF0OjE"
+        refresh_token: "SUtmZ0lRbHRjdHhNeWduTUNVaDc3X0R4bjM2NXQ2aEg5cERFR0dndkJWVHVuOjE3NjA5NzY4OTAwNTQ6MTowOnJ0OjE"
         search_query: '("PunkStrategy" OR "$PNKSTR" OR "PunkStrategyStrategy" OR "PNKSTR") (lang:en OR lang:und)'
 
-  # - persona: eve_bot
-  #   accounts:
-  #     - handle: EveZero_42
-  #       access_token: "RESEARCH_ACCESS_TOKEN"
-  #       refresh_token: "RESEARCH_REFRESH_TOKEN"
-  #       search_query: '"PunkStrategy" OR "PSS"'
+  - persona: eve_bot
+    accounts:
+      - handle: EveZero_42
+        access_token: "TDBvamNmR0lFUER0OWIzLWg1bGxMbVlYblVHa0RfWGNqT2Y2dXBZbW5wUDRTOjE3NjA5NzkxMjM4MTU6MTowOmF0OjE"
+        refresh_token: "MFZaSndFZmhhcE9ZdDlTbTJJQm1yaTE4WHlzWndadlZoRVhMaWVueU5mX0FJOjE3NjA5NzkxMjM4MTU6MTowOnJ0OjE"
+        search_query: '("PunkStrategy" OR "$PNKSTR" OR "PunkStrategyStrategy" OR "PNKSTR") (lang:en OR lang:und)'
 
 bots:
   ignore_handles:
     - punkstrategys
+    - EveZero_42
