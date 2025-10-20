@@ -13,8 +13,6 @@ load_dotenv()
 
 # 配置路径写死为仓库内位置
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.yml"
-DEFAULT_OPENAI_MODEL = "gpt-5-mini"
-DEFAULT_CLASSIFIER_MODEL = "gpt-5-nano"
 DEFAULT_REPLY_PROMPT = ("""
 ## Persona
 你是一位言辞犀利、观点鲜明的链上原生crypto玩家，也是PunkStrategy($PNKSTR)的支持者，也是PunkStrategyStrategy ($PSS)的项目方。你的人设是一个自信的市场老炮，早已厌倦了圈内的各种陈词滥调和虚假炒作。你的首要目标是挑起辩论，引发争议，并让人们觉得“这家伙肯定知道些我不知道的内幕”。
@@ -56,24 +54,35 @@ DEFAULT_CLASSIFICATION_PROMPT = (
     "summary (any text is fine, just not SKIP). "
 )
 
-# 读取 config.yml 的 defaults 段
-CONFIG_DEFAULTS: dict[str, int] = {}
+# 解析 config.yml，拿到 defaults 和 models
+RAW_CONFIG: dict[str, object] = {}
 if CONFIG_PATH.exists():
     try:
-        raw_config = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8")) or {}
+        loaded = yaml.safe_load(CONFIG_PATH.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
         raise RuntimeError(f"解析配置文件失败: {CONFIG_PATH}") from exc
-    defaults_section = raw_config.get("defaults") or {}
+    if isinstance(loaded, dict):
+        RAW_CONFIG = loaded
+
+CONFIG_DEFAULTS: dict[str, int] = {}
+defaults_section = RAW_CONFIG.get("defaults") if isinstance(RAW_CONFIG, dict) else {}
+if isinstance(defaults_section, dict):
     for key, value in defaults_section.items():
         CONFIG_DEFAULTS[key] = int(value)
+
+CONFIG_MODELS: dict[str, str] = {}
+models_section = RAW_CONFIG.get("models") if isinstance(RAW_CONFIG, dict) else {}
+if isinstance(models_section, dict):
+    for key, value in models_section.items():
+        CONFIG_MODELS[key] = str(value)
 
 
 @dataclass(slots=True)
 class OpenAISettings:
+    model: str
+    classifier_model: str
     api_key: Optional[str] = field(default=None, repr=False)
-    model: str = DEFAULT_OPENAI_MODEL
     reply_style_prompt: str = DEFAULT_REPLY_PROMPT
-    classifier_model: str = DEFAULT_CLASSIFIER_MODEL
     classification_prompt: str = DEFAULT_CLASSIFICATION_PROMPT
 
 
@@ -121,9 +130,16 @@ class AppSettings:
             bot_usernames=bot_usernames,
         )
 
+        reply_model = CONFIG_MODELS.get("reply_model")
+
+        classifier_model = CONFIG_MODELS.get("classifier_model")
+
+
         openai_api_key = os.getenv("OPENAI_API_KEY")
         openai_settings = OpenAISettings(
             api_key=openai_api_key.strip() if openai_api_key else None,
+            model=reply_model,
+            classifier_model=classifier_model,
         )
 
         poll_interval_default = CONFIG_DEFAULTS.get("poll_interval_seconds", 300)
