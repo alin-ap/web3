@@ -33,3 +33,14 @@ runtime/
 # Logs
 *.log
 logs/
+
+# Foundry/Solidity
+app/backend_pss/cache/
+app/backend_pss/out/
+app/backend_pss/broadcast/*/31337/
+app/backend_pss/broadcast/**/dry-run/
+app/backend_pss/artifacts/
+app/backend_pss/typechain/
+app/backend_pss/typechain-types/
+app/backend_pss/cache_hardhat/
+app/backend_pss/metadata/
