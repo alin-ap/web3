@@ -58,7 +58,7 @@ class TwitterClient:
         max_results: int,
         since_id: Optional[int] = None,
     ) -> list[Tweet]:
-        max_results = max(1, min(max_results, 100))
+        max_results = max(10, min(max_results, 100))
         params = {
             "query": self._settings.search_query,
             "max_results": max_results,

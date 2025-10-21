@@ -28,3 +28,7 @@ python -m src.main run --log-level INFO
 
 TWITTER_HANDLE=punkstrategys python -m src.main run
 TWITTER_HANDLE=EveZero_42 python -m src.main run
+
+## 授权：
+python -m src.main auth walkthrough --handle punkstrategys
+python -m src.main auth walkthrough --handle EveZero_42

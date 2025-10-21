@@ -1,6 +1,6 @@
 {
-  "access_token": "TDBvamNmR0lFUER0OWIzLWg1bGxMbVlYblVHa0RfWGNqT2Y2dXBZbW5wUDRTOjE3NjA5NzkxMjM4MTU6MTowOmF0OjE",
-  "refresh_token": "MFZaSndFZmhhcE9ZdDlTbTJJQm1yaTE4WHlzWndadlZoRVhMaWVueU5mX0FJOjE3NjA5NzkxMjM4MTU6MTowOnJ0OjE",
-  "expires_at": null,
-  "scope": null
+  "access_token": "b3lQaWZfREZTeHZzb2VJelo0aGN6ZDRTalRwYkxubV82dk5qRXZneDFMa2R2OjE3NjEwMjU4MDI3NzQ6MTowOmF0OjE",
+  "refresh_token": "Y08ydnFYQ253bnRuUEptWFBMOHNFZ1BWWmI4eHBaSU1Jb1VrOW05MnRYYjVqOjE3NjEwMjU4MDI3NzQ6MTowOnJ0OjE",
+  "expires_at": 1761033002.811286,
+  "scope": "tweet.write users.read tweet.read offline.access"
 }
