@@ -7,6 +7,7 @@ import logging
 import os
 import secrets
 import sys
+import threading
 import time
 import urllib.parse
 from dataclasses import dataclass
@@ -49,10 +50,12 @@ def run(
         False,
         help="Generate and log replies without posting to Twitter.",
     ),
+    handle: Optional[str] = typer.Option(None, help="Override config.yml account handle for this run."),
 ) -> None:
     """Start the auto-reply bot in continuous polling mode."""
     configure_logging(log_level)
-    settings = AppSettings.from_env()
+    handle_value = handle.lstrip("@") if handle else None
+    settings = AppSettings.from_env(handle=handle_value)
     bot = AutoReplyBot(settings, dry_run=dry_run)
 
     typer.echo("Starting auto-reply bot. Press Ctrl+C to stop.")
@@ -60,6 +63,88 @@ def run(
         bot.run()
     except KeyboardInterrupt:
         typer.echo("\nStopping bot.")
+
+
+def _normalize_handle(value: str) -> str:
+    return value.strip().lstrip("@")
+
+
+def _run_bot_worker(handle: str, bot: AutoReplyBot, stop_event: threading.Event) -> None:
+    try:
+        bot.run(stop_event=stop_event)
+    except Exception:  # pragma: no cover - network interaction / thread
+        logging.getLogger(__name__).exception("Bot thread for handle %s crashed", handle)
+
+
+@app.command("run-all")
+def run_all(
+    log_level: str = typer.Option("INFO", help="Logging level (DEBUG, INFO, WARNING)."),
+    dry_run: bool = typer.Option(
+        False,
+        help="Generate and log replies without posting to Twitter.",
+    ),
+    handle: Optional[list[str]] = typer.Option(
+        None,
+        "--handle",
+        help="Limit to the specified handles (can be provided multiple times).",
+    ),
+) -> None:
+    """Start auto-reply bots for multiple accounts concurrently."""
+    configure_logging(log_level)
+    if BOTS_CONFIG is None:
+        raise RuntimeError("缺少 config.yml，无法加载账号配置")
+
+    if handle:
+        handles_normalized: list[str] = []
+        for item in handle:
+            normalized = _normalize_handle(item)
+            if not normalized:
+                raise typer.BadParameter(f"无效的 handle 值: {item!r}")
+            try:
+                account = BOTS_CONFIG.accounts[normalized.lower()]
+            except KeyError as exc:
+                raise typer.BadParameter(f"config.yml 未找到 handle={item} 的账号配置") from exc
+            handles_normalized.append(account.handle)
+    else:
+        handles_normalized = [account.handle for account in BOTS_CONFIG.accounts.values()]
+
+    if not handles_normalized:
+        raise RuntimeError("config.yml 中没有配置任何账号")
+
+    stop_events: list[threading.Event] = []
+    threads: list[threading.Thread] = []
+
+    for account_handle in handles_normalized:
+        stop_event = threading.Event()
+        handle_key = _normalize_handle(account_handle)
+        settings = AppSettings.from_env(handle=handle_key)
+        bot = AutoReplyBot(settings, dry_run=dry_run)
+        thread = threading.Thread(
+            target=_run_bot_worker,
+            name=f"bot-{handle_key}",
+            args=(account_handle, bot, stop_event),
+            daemon=True,
+        )
+        stop_events.append(stop_event)
+        threads.append(thread)
+        thread.start()
+        typer.echo(f"Started bot for @{handle_key}")
+
+    typer.echo("All bots running. Press Ctrl+C to stop.")
+    try:
+        while True:
+            if not any(thread.is_alive() for thread in threads):
+                typer.echo("All bot threads have exited.")
+                break
+            time.sleep(1)
+    except KeyboardInterrupt:
+        typer.echo("\nStop signal received. Shutting down bots...")
+    finally:
+        for event in stop_events:
+            event.set()
+        for thread in threads:
+            thread.join()
+    typer.echo("All bots stopped.")
 
 
 # ---------------------------------------------------------------------------

@@ -219,6 +219,7 @@ class OpenAISettings:
     classifier_model: str
     reply_style_prompt: str
     classification_prompt: str
+    provider: str = "openai"
     api_key: Optional[str] = field(default=None, repr=False)
 
 
@@ -251,14 +252,15 @@ class AppSettings:
     max_tweets_per_run: int = 10
 
     @classmethod
-    def from_env(cls) -> "AppSettings":
+    def from_env(cls, *, handle: Optional[str] = None) -> "AppSettings":
         def require(name: str) -> str:
             value = os.getenv(name)
             if not value:
                 raise RuntimeError(f"Missing required environment variable: {name}")
             return value
 
-        account = _select_account(os.getenv("TWITTER_HANDLE"))
+        account_hint = handle or os.getenv("TWITTER_HANDLE")
+        account = _select_account(account_hint)
         config = BOTS_CONFIG
         if config is None:
             raise RuntimeError(f"缺少配置文件: {CONFIG_PATH}")
@@ -279,15 +281,27 @@ class AppSettings:
         )
 
         token_path = token_cache_path(account.handle)
-        state_path = VAR_DIR / "state.json"
+        normalized_handle = account.handle.lower().lstrip("@")
+        state_path = VAR_DIR / f"state_{normalized_handle}.json"
 
-        openai_api_key = os.getenv("OPENAI_API_KEY")
+        provider = os.getenv("LLM_PROVIDER", "openai").strip().lower()
+        if provider not in {"openai", "gemini"}:
+            raise RuntimeError(f"不支持的 LLM_PROVIDER: {provider}")
+
+        if provider == "gemini":
+            api_key_value = os.getenv("GEMINI_API_KEY")
+            if not api_key_value:
+                raise RuntimeError("缺少 GEMINI_API_KEY，用于 Gemini 模型调用")
+        else:
+            api_key_value = os.getenv("OPENAI_API_KEY")
+
         openai_settings = OpenAISettings(
             model=config.models.reply_model,
             classifier_model=config.models.classifier_model,
             reply_style_prompt=persona_config.reply_prompt,
             classification_prompt=persona_config.classifier_prompt,
-            api_key=openai_api_key.strip() if openai_api_key else None,
+            provider=provider,
+            api_key=api_key_value.strip() if api_key_value else None,
         )
 
         poll_interval_default = config.defaults.poll_interval_seconds

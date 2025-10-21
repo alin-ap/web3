@@ -2,6 +2,7 @@
 
 import logging
 import time
+from threading import Event
 from typing import Optional
 
 from .config import AppSettings
@@ -27,16 +28,24 @@ class AutoReplyBot:
             )
         self._twitter = TwitterClient(settings.twitter, self._storage)
 
-    def run(self) -> None:
+    def run(self, stop_event: Optional[Event] = None) -> None:
         interval = self._settings.poll_interval_seconds
         logger.info("Auto-reply bot started; polling every %s seconds", interval)
         if self._dry_run:
             logger.info("Dry run mode enabled; replies will not be posted to Twitter")
         while True:
+            if stop_event and stop_event.is_set():
+                logger.info("Stop signal received; exiting bot loop")
+                return
             replies = self._process_cycle()
             logger.info("Cycle complete. Replies sent: %s", replies)
             logger.info("Sleeping for %s seconds", interval)
-            time.sleep(interval)
+            if stop_event:
+                if stop_event.wait(interval):
+                    logger.info("Stop signal received; exiting bot loop")
+                    return
+            else:
+                time.sleep(interval)
 
     def _process_cycle(self) -> int:
         logger.info("Fetching tweets for query %r", self._settings.twitter.search_query)
