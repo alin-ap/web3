@@ -23,12 +23,12 @@ import {FixedPoint128} from "@uniswap/v4-core/src/libraries/FixedPoint128.sol";
 import {IUniswapV4Router04} from "v4-router/interfaces/IUniswapV4Router04.sol";
 import "./Interfaces.sol";
 /*
-    ____              __      _____ __             __                   ___ 
+    ____              __      _____ __             __                   ___
    / __ \__  ______  / /__   / ___// /__________ _/ /____  ____ ___  __|_  |
-  / /_/ / / / / __ \/ //_/   \__ \/ __/ ___/ __ `/ __/ _ \/ __ `/ / / / __/ 
- / ____/ /_/ / / / / ,<     ___/ / /_/ /  / /_/ / /_/  __/ /_/ / /_/ /____/ 
-/_/    \__,_/_/ /_/_/|_|   /____/\__/_/   \__,_/\__/\___/\__, /\__, /       
-                                                        /____//____/                                                                                                                                      
+  / /_/ / / / / __ \/ //_/   \__ \/ __/ ___/ __ `/ __/ _ \/ __ `/ / / / __/
+ / ____/ /_/ / / / / ,<     ___/ / /_/ /  / /_/ / /_/  __/ /_/ / /_/ /____/
+/_/    \__,_/_/ /_/_/|_|   /____/\__/_/   \__,_/\__/\___/\__, /\__, /
+                                                        /____//____/
 */
 contract PunkStrategyStrategy is ERC20, Ownable, ReentrancyGuard {
     using PoolIdLibrary for PoolKey;
@@ -50,7 +50,7 @@ contract PunkStrategyStrategy is ERC20, Ownable, ReentrancyGuard {
     int24 private constant PRIMARY_TOKEN_TICK_SPACING = 60;
     uint24 private constant PRIMARY_TOKEN_POOL_FEE = 0;
 
-
+ba
     /* ™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™ */
     /*                      VARIABLES                      */
     /* ™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™™ */
@@ -200,7 +200,7 @@ contract PunkStrategyStrategy is ERC20, Ownable, ReentrancyGuard {
 
     function _pnkstrPurchase(uint256 ethAmount) internal returns (uint256, uint256) {
         require(address(this).balance >= ethAmount, "Not enough ETH in contract");
-        
+
         PoolKey memory key = PoolKey(
             Currency.wrap(address(0)),
             Currency.wrap(PNKSTR_ADDRESS),
@@ -250,7 +250,7 @@ contract PunkStrategyStrategy is ERC20, Ownable, ReentrancyGuard {
         uint256 token0Amount = 1; // 1 wei
         uint256 token1Amount = 1_000_000_000 * 10**18; // 1B TOKEN
 
-        // 12.5e18 ETH = 1_000_000_000e18 TOKEN 
+        // 12.5e18 ETH = 1_000_000_000e18 TOKEN
         uint160 startingPrice = 708638228457182841184406864642904;
 
         int24 tickLower = TickMath.minUsableTick(tickSpacing);
