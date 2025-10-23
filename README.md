@@ -27,7 +27,7 @@ python -m src.main run --log-level INFO
 
 
 ## 模型配置
-- 默认回复模型为 `anthropic/claude-3.5-sonnet`，分类模型为 `gpt-5-nano`；如需调整可在 `app/post/config.yml` 的 `models` 段替换为 OpenRouter 支持的其他模型。
+- 默认回复模型为 `google/gemini-1.5-pro-latest`，分类模型为 `google/gemini-1.5-flash-latest`；如需调整可在 `app/post/config.yml` 的 `models` 段替换为 OpenRouter 支持的其他模型。
 
 
 ## 同时运行两个：

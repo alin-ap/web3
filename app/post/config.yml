@@ -1,10 +1,10 @@
 defaults:
-  poll_interval_seconds: 3600
+  poll_interval_seconds: 4800
   max_tweets_per_run: 10
 
 models:
-  reply_model: anthropic/claude-3.5-sonnet
-  classifier_model: gpt-5-nano
+  reply_model: google/gemini-2.5-flash
+  classifier_model: google/gemini-2.5-flash
 
 personas:
   official_bot:
@@ -18,8 +18,8 @@ groups:
   - persona: official_bot
     accounts:
       - handle: punkstrategys
-        access_token: "eUN6aWxsVGdRcXVrNHdyM2lXTE5Wdkx5d2xGWGdIT1NzT3QtMVVZX2pucm1HOjE3NjA5NzY4OTAwNTQ6MToxOmF0OjE"
-        refresh_token: "SUtmZ0lRbHRjdHhNeWduTUNVaDc3X0R4bjM2NXQ2aEg5cERFR0dndkJWVHVuOjE3NjA5NzY4OTAwNTQ6MTowOnJ0OjE"
+        access_token: "ZEgxU183Q3lVcno1QWczbmduMmtDaUxwbWJJbVBVQmJjd01JVEhyOXotTDJrOjE3NjEyNDM0NTg3ODE6MTowOmF0OjE"
+        refresh_token: "OWNnaG1VVDZ1RDJVNV9NUkxiV2ZGdGpvUHQyWTlpcTRmVU9LNmhZMGVESjRlOjE3NjEyNDM0NTg3ODE6MToxOnJ0OjE"
         search_query: '("PunkStrategy" OR "$PNKSTR" OR "PunkStrategyStrategy" OR "PNKSTR") (lang:en OR lang:und)'
 
   - persona: eve_bot
@@ -29,7 +29,22 @@ groups:
         refresh_token: "MFZaSndFZmhhcE9ZdDlTbTJJQm1yaTE4WHlzWndadlZoRVhMaWVueU5mX0FJOjE3NjA5NzkxMjM4MTU6MTowOnJ0OjE"
         search_query: '("PunkStrategy" OR "$PNKSTR" OR "PunkStrategyStrategy" OR "PNKSTR") (lang:en OR lang:und)'
 
+  # - persona: eve_bot
+  #   accounts:
+  #     - handle: Eve_zero1207
+  #       access_token:
+  #       refresh_token:
+  #       search_query: '("EveZero_42" OR "Eve Zero" OR "Eve42") (lang:en OR lang:und)'
+
+  - persona: eve_bot
+    accounts:
+      - handle: ecain96424
+        access_token: "M0hKMFVpZWlXTE5sWHN4ZGRjeXBXcXcySDQtS0xiNE5kUEUxaUVnS3ZzSmR3OjE3NjEyMzQxMzUyNzg6MToxOmF0OjE"
+        refresh_token: "S05ZOFJPMmhBVkNYX2x5bnoyZk5acDNWWjVKa2VOa2twN1RETjRlbjJrSjZtOjE3NjEyMzQxMzUyNzg6MToxOnJ0OjE"
+        search_query: '("PunkStrategy" OR "$PNKSTR" OR "PunkStrategyStrategy" OR "PNKSTR") (lang:en OR lang:und)'
 bots:
   ignore_handles:
     - punkstrategys
     - EveZero_42
+    - Eve_zero807
+    - EVE_ZERO_42
