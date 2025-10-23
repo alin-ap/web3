@@ -44,3 +44,4 @@ app/backend_pss/typechain/
 app/backend_pss/typechain-types/
 app/backend_pss/cache_hardhat/
 app/backend_pss/metadata/
+app/backend_pss/lib/
