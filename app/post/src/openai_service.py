@@ -1,4 +1,4 @@
-"""OpenAI helpers for classifying and drafting replies."""
+"""OpenRouter-backed helpers for classifying and drafting replies."""
 
 import json
 import logging
@@ -22,7 +22,7 @@ class TweetContext:
 
 class ReplyGenerator:
     def __init__(self, settings: OpenAISettings) -> None:
-        self._client = OpenAI(api_key=settings.api_key)
+        self._client = OpenAI(api_key=settings.api_key, base_url="https://openrouter.ai/api/v1")
         self._settings = settings
 
     def should_reply(self, context: TweetContext) -> tuple[bool, str]:

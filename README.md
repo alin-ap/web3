@@ -5,7 +5,7 @@
 ## 功能亮点
 - 完整接入 OAuth 2.0 用户上下文授权流程，并自动刷新 token。
 - Twitter 最近搜索结果请求 `public_metrics` 后，依据点赞、转推、回复、引用等互动指标计算热度得分，让机器人优先处理热门内容。
-- OpenAI 负责回复生成与分类，可通过 `--dry-run` 模式仅记录而不发送。
+- OpenRouter（OpenAI 兼容接口）负责回复生成与分类，可通过 `--dry-run` 模式仅记录而不发送。
 
 ## 目录结构
 - `app/post/` – 推特自动回复 Python 微服务。
@@ -21,6 +21,13 @@
 python -m src.main run --log-level INFO
 ```
 如需仅观察生成结果但不真正发送回复，可加 `--dry-run`。
+
+## 环境变量
+- `OPENROUTER_API_KEY`：从 OpenRouter 控制台获取，用于调用统一的 LLM 接口。
+
+
+## 模型配置
+- 默认回复模型为 `anthropic/claude-3.5-sonnet`，分类模型为 `gpt-5-nano`；如需调整可在 `app/post/config.yml` 的 `models` 段替换为 OpenRouter 支持的其他模型。
 
 
 ## 同时运行两个：

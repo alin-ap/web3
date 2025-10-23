@@ -24,7 +24,7 @@ class AutoReplyBot:
         else:
             self._reply_generator = None
             logger.warning(
-                "OpenAI API key is not configured; tweets will be logged but no replies will be posted."
+                "OpenRouter API key is not configured; tweets will be logged but no replies will be posted."
             )
         self._twitter = TwitterClient(settings.twitter, self._storage)
 
@@ -79,7 +79,7 @@ class AutoReplyBot:
             logger.info("Processing tweet %s by @%s: %s", tweet.id, tweet.author_handle, preview)
             if self._reply_generator is None:
                 logger.info(
-                    "Skipping reply for tweet %s (@%s) because no OpenAI API key is configured.",
+                    "Skipping reply for tweet %s (@%s) because no OpenRouter API key is configured.",
                     tweet.id,
                     tweet.author_handle,
                 )
@@ -150,7 +150,7 @@ class AutoReplyBot:
 
     def _should_reply(self, tweet: Tweet) -> tuple[bool, str]:
         if self._reply_generator is None:
-            return False, "no_openai_key"
+            return False, "no_openrouter_key"
         try:
             context = TweetContext(text=tweet.text, author_handle=tweet.author_handle, url=tweet.url)
             return self._reply_generator.should_reply(context)

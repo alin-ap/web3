@@ -3,7 +3,7 @@ defaults:
   max_tweets_per_run: 10
 
 models:
-  reply_model: gpt-5-mini
+  reply_model: anthropic/claude-3.5-sonnet
   classifier_model: gpt-5-nano
 
 personas:

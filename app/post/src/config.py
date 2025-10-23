@@ -219,7 +219,7 @@ class OpenAISettings:
     classifier_model: str
     reply_style_prompt: str
     classification_prompt: str
-    provider: str = "openai"
+    provider: str = "openrouter"
     api_key: Optional[str] = field(default=None, repr=False)
 
 
@@ -284,16 +284,11 @@ class AppSettings:
         normalized_handle = account.handle.lower().lstrip("@")
         state_path = VAR_DIR / f"state_{normalized_handle}.json"
 
-        provider = os.getenv("LLM_PROVIDER", "openai").strip().lower()
-        if provider not in {"openai", "gemini"}:
+        provider = os.getenv("LLM_PROVIDER", "openrouter").strip().lower()
+        if provider != "openrouter":
             raise RuntimeError(f"不支持的 LLM_PROVIDER: {provider}")
 
-        if provider == "gemini":
-            api_key_value = os.getenv("GEMINI_API_KEY")
-            if not api_key_value:
-                raise RuntimeError("缺少 GEMINI_API_KEY，用于 Gemini 模型调用")
-        else:
-            api_key_value = os.getenv("OPENAI_API_KEY")
+        api_key_value = require("OPENROUTER_API_KEY")
 
         openai_settings = OpenAISettings(
             model=config.models.reply_model,
